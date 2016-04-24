@@ -9,18 +9,33 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sgravrock/flickr-to-go-go/auth/authfakes"
+	"github.com/sgravrock/flickr-to-go-go/storage"
+	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 )
 
 var _ = Describe("Auth", func() {
 	var oauthClient authfakes.FakeOauthClient
 	var oauthConsumer *authfakes.FakeOauthConsumer
 	var ui *authfakes.FakeUiAdapter
+	var fs *storagefakes.FakeStorage
+	var credsFile *storagefakes.FakeFile
+	var credsCreateError error
 
 	BeforeEach(func() {
 		oauthClient = *new(authfakes.FakeOauthClient)
 		oauthConsumer = new(authfakes.FakeOauthConsumer)
 		ui = new(authfakes.FakeUiAdapter)
 		oauthClient.NewConsumerReturns(oauthConsumer)
+		fs = new(storagefakes.FakeStorage)
+		credsFile = nil
+		credsCreateError = errors.New("not mocked")
+		fs.CreateStub = func(name string) (storage.File, error) {
+			if name == "flickr-credentials" {
+				return credsFile, credsCreateError
+			}
+
+			return nil, errors.New("not mocked")
+		}
 	})
 
 	Context("When obtaining a request token fails", func() {
@@ -32,7 +47,8 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("should return the error", func() {
-			t, err := Authenticate("theKey", "theSecret", &oauthClient, ui)
+			t, err := Authenticate("theKey", "theSecret", fs, true,
+				&oauthClient, ui)
 			Expect(t).To(BeNil())
 			Expect(err).To(BeIdenticalTo(tokenError))
 		})
@@ -48,7 +64,8 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("should prompt the user for authentication", func() {
-			Authenticate("theKey", "theSecret", &oauthClient, ui)
+			Authenticate("theKey", "theSecret", fs, true,
+				&oauthClient, ui)
 			Expect(ui.PromptForAccessCodeCallCount()).To(Equal(1))
 			Expect(ui.PromptForAccessCodeArgsForCall(0)).To(Equal("the://url"))
 		})
@@ -62,7 +79,8 @@ var _ = Describe("Auth", func() {
 			})
 
 			It("should return the error", func() {
-				t, err := Authenticate("theKey", "theSecret", &oauthClient, ui)
+				t, err := Authenticate("theKey", "theSecret",
+					fs, true, &oauthClient, ui)
 				Expect(t).To(BeNil())
 				Expect(err).To(BeIdenticalTo(codeError))
 			})
@@ -74,7 +92,8 @@ var _ = Describe("Auth", func() {
 			})
 
 			It("should authorize the request token and code", func() {
-				Authenticate("theKey", "theSecret", &oauthClient, ui)
+				Authenticate("theKey", "theSecret", fs, true,
+					&oauthClient, ui)
 				Expect(oauthConsumer.AuthorizeTokenCallCount()).To(Equal(1))
 				token, code := oauthConsumer.AuthorizeTokenArgsForCall(0)
 				Expect(token).To(Equal(&requestToken))
@@ -90,7 +109,8 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("should return the error", func() {
-					t, err := Authenticate("theKey", "theSecret", &oauthClient, ui)
+					t, err := Authenticate("theKey", "theSecret",
+						fs, true, &oauthClient, ui)
 					Expect(t).To(BeNil())
 					Expect(err).To(BeIdenticalTo(authError))
 				})
@@ -108,9 +128,33 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("should return the acesss token", func() {
-					result, err := Authenticate("theKey", "theSecret", &oauthClient, ui)
+					result, err := Authenticate("theKey", "theSecret",
+						fs, false, &oauthClient, ui)
 					Expect(result).To(Equal(&accessToken))
 					Expect(err).To(BeNil())
+				})
+
+				Context("When savecreds is true", func() {
+					BeforeEach(func() {
+						credsFile = new(storagefakes.FakeFile)
+						credsCreateError = nil
+					})
+
+					It("should save the access token", func() {
+						Authenticate("theKey", "theSecret",
+							fs, true, &oauthClient, ui)
+						Expect(fs.CreateCallCount()).To(Equal(1))
+						Expect(fs.CreateArgsForCall(0)).To(Equal("flickr-credentials"))
+						Expect(credsFile.WriteCallCount()).To(BeNumerically(">", 0))
+					})
+				})
+
+				Context("When savecreds is false", func() {
+					It("should not save the access token", func() {
+						Authenticate("theKey", "theSecret",
+							fs, false, &oauthClient, ui)
+						Expect(fs.CreateCallCount()).To(Equal(0))
+					})
 				})
 			})
 		})
