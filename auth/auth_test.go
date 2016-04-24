@@ -2,8 +2,13 @@ package auth_test
 
 import (
 	"errors"
+	"os"
 
 	. "github.com/sgravrock/flickr-to-go-go/auth"
+
+	"io/ioutil"
+
+	"encoding/gob"
 
 	"github.com/mrjones/oauth"
 	. "github.com/onsi/ginkgo"
@@ -36,6 +41,51 @@ var _ = Describe("Auth", func() {
 
 			return nil, errors.New("not mocked")
 		}
+		fs.OpenStub = func(name string) (storage.File, error) {
+			return nil, errors.New("not mocked")
+		}
+	})
+
+	Context("When there are saved credentials", func() {
+		expectedToken := oauth.AccessToken{"token", "secret", nil}
+		var result *oauth.AccessToken
+		var tempPath string
+
+		BeforeEach(func() {
+			tempFile, err := ioutil.TempFile("", "creds")
+			Expect(err).To(BeNil())
+			defer tempFile.Close()
+			tempPath = tempFile.Name()
+			gob.NewEncoder(tempFile).Encode(expectedToken)
+			tempFile.Seek(0, 0)
+			fs.OpenStub = func(name string) (storage.File, error) {
+				if name == "flickr-credentials" {
+					return os.Open(tempPath)
+				} else {
+					return nil, errors.New("not mocked")
+				}
+			}
+
+			result, _ = Authenticate("theKey", "theSecret", fs, true,
+				&oauthClient, ui)
+		})
+
+		AfterEach(func() {
+			os.Remove(tempPath)
+		})
+
+		It("should return the saved access token", func() {
+			Expect(result).NotTo(BeNil())
+			Expect(*result).To(Equal(expectedToken))
+		})
+
+		It("should not do any oauth", func() {
+			Expect(oauthClient.NewConsumerCallCount()).To(Equal(0))
+		})
+
+		It("should not prompt the user to get a code", func() {
+			Expect(ui.PromptForAccessCodeCallCount()).To(Equal(0))
+		})
 	})
 
 	Context("When obtaining a request token fails", func() {

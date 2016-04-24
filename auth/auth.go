@@ -3,8 +3,6 @@ package auth
 import (
 	"encoding/gob"
 
-	"fmt"
-
 	"github.com/mrjones/oauth"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
@@ -16,12 +14,41 @@ type UiAdapter interface {
 func Authenticate(key string, secret string, filestore storage.Storage,
 	savecreds bool, oauthClient OauthClient, ui UiAdapter) (*oauth.AccessToken, error) {
 
+	f, err := filestore.Open("flickr-credentials")
+	if err == nil {
+		defer f.Close()
+		result := new(oauth.AccessToken)
+		err := gob.NewDecoder(f).Decode(result)
+		return result, err
+	}
+
 	if oauthClient == nil {
 		oauthClient = NewOauthClient()
 	}
 	if ui == nil {
 		ui = NewConsoleUiAdapter()
 	}
+
+	accessToken, err := authLive(key, secret, oauthClient, ui)
+	if err != nil || !savecreds {
+		return accessToken, err
+	}
+
+	f, err = filestore.Create("flickr-credentials")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	err = gob.NewEncoder(f).Encode(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessToken, nil
+}
+
+func authLive(key string, secret string, oauthClient OauthClient,
+	ui UiAdapter) (*oauth.AccessToken, error) {
 
 	consumer := oauthClient.NewConsumer(
 		key,
@@ -43,26 +70,5 @@ func Authenticate(key string, secret string, filestore storage.Storage,
 		return nil, err
 	}
 
-	accessToken, err := consumer.AuthorizeToken(requestToken, accessCode)
-	if err != nil {
-		return nil, err
-	}
-
-	if !savecreds {
-		fmt.Println("Not saving creds")
-		return accessToken, nil
-	}
-
-	fmt.Println("Saving creds")
-	f, err := filestore.Create("flickr-credentials")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	err = gob.NewEncoder(f).Encode(accessToken)
-	if err != nil {
-		return nil, err
-	}
-
-	return accessToken, nil
+	return consumer.AuthorizeToken(requestToken, accessCode)
 }
