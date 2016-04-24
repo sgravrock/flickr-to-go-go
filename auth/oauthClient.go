@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/mrjones/oauth"
+import (
+	"net/http"
+
+	"github.com/mrjones/oauth"
+)
 
 type OauthClient interface {
 	NewConsumer(key string, secret string, requestTokenUrl string,
@@ -12,6 +16,7 @@ type OauthConsumer interface {
 		loginUrl string, err error)
 	AuthorizeToken(rtoken *oauth.RequestToken, verificationCode string) (atoken *oauth.AccessToken, err error)
 	SetAdditionalParams(params map[string]string)
+	MakeHttpClient(token *oauth.AccessToken) (*http.Client, error)
 }
 
 func NewOauthClient() OauthClient {
@@ -53,4 +58,8 @@ func (c defaultOauthConsumer) AuthorizeToken(rtoken *oauth.RequestToken,
 
 func (c defaultOauthConsumer) SetAdditionalParams(params map[string]string) {
 	c.wrappedConsumer.AdditionalAuthorizationUrlParams = params
+}
+
+func (c defaultOauthConsumer) MakeHttpClient(token *oauth.AccessToken) (*http.Client, error) {
+	return c.wrappedConsumer.MakeHttpClient(token)
 }

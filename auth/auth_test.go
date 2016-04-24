@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"errors"
+	"net/http"
 	"os"
 
 	. "github.com/sgravrock/flickr-to-go-go/auth"
@@ -48,7 +49,8 @@ var _ = Describe("Auth", func() {
 
 	Context("When there are saved credentials", func() {
 		expectedToken := oauth.AccessToken{"token", "secret", nil}
-		var result *oauth.AccessToken
+		var httpClient http.Client
+		var result *http.Client
 		var tempPath string
 
 		BeforeEach(func() {
@@ -65,8 +67,9 @@ var _ = Describe("Auth", func() {
 					return nil, errors.New("not mocked")
 				}
 			}
-
-			result, _ = Authenticate("theKey", "theSecret", fs, true,
+			httpClient = http.Client{}
+			oauthConsumer.MakeHttpClientReturns(&httpClient, nil)
+			result, _ = Authenticate("theKey", "theSecret", fs, false,
 				&oauthClient, ui)
 		})
 
@@ -74,13 +77,9 @@ var _ = Describe("Auth", func() {
 			os.Remove(tempPath)
 		})
 
-		It("should return the saved access token", func() {
-			Expect(result).NotTo(BeNil())
-			Expect(*result).To(Equal(expectedToken))
-		})
-
-		It("should not do any oauth", func() {
-			Expect(oauthClient.NewConsumerCallCount()).To(Equal(0))
+		It("should return the created HTTP client", func() {
+			Expect(oauthConsumer.MakeHttpClientCallCount()).To(Equal(1))
+			Expect(result).To(BeIdenticalTo(&httpClient))
 		})
 
 		It("should not prompt the user to get a code", func() {
@@ -169,18 +168,21 @@ var _ = Describe("Auth", func() {
 
 			Context("When authorization succeeds", func() {
 				var accessToken oauth.AccessToken
+				var httpClient http.Client
 
 				BeforeEach(func() {
 					accessToken = oauth.AccessToken{
 						"access token", "", nil,
 					}
 					oauthConsumer.AuthorizeTokenReturns(&accessToken, nil)
+					httpClient = http.Client{}
+					oauthConsumer.MakeHttpClientReturns(&httpClient, nil)
 				})
 
-				It("should return the acesss token", func() {
+				It("should return the created HTTP client", func() {
 					result, err := Authenticate("theKey", "theSecret",
 						fs, false, &oauthClient, ui)
-					Expect(result).To(Equal(&accessToken))
+					Expect(result).To(BeIdenticalTo(&httpClient))
 					Expect(err).To(BeNil())
 				})
 

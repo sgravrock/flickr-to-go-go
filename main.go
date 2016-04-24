@@ -6,6 +6,8 @@ import (
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
 
+	"io/ioutil"
+
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
@@ -14,7 +16,7 @@ func main() {
 	secret := os.Getenv("FLICKR_API_SECRET")
 	savecreds, dest := parseArgs()
 	filestore := storage.FileStorage{dest}
-	accessToken, err := auth.Authenticate(key, secret, filestore,
+	httpClient, err := auth.Authenticate(key, secret, filestore,
 		savecreds, nil, nil)
 
 	if err != nil {
@@ -22,7 +24,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Got access code: %s\n", accessToken)
+	resp, err := httpClient.Get("https://api.flickr.com/services/rest/?method=flickr.test.login&format=json&nojsoncallback=1")
+	if err != nil {
+		fmt.Printf("Couldn't verify login: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	defer resp.Body.Close()
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Couldn't verify login: %s\n", err.Error())
+		os.Exit(1)
+	}
+	fmt.Println(string(buf))
 }
 
 func parseArgs() (bool, string) {

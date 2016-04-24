@@ -2,6 +2,7 @@
 package authfakes
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/mrjones/oauth"
@@ -33,6 +34,15 @@ type FakeOauthConsumer struct {
 	setAdditionalParamsMutex       sync.RWMutex
 	setAdditionalParamsArgsForCall []struct {
 		params map[string]string
+	}
+	MakeHttpClientStub        func(token *oauth.AccessToken) (*http.Client, error)
+	makeHttpClientMutex       sync.RWMutex
+	makeHttpClientArgsForCall []struct {
+		token *oauth.AccessToken
+	}
+	makeHttpClientReturns struct {
+		result1 *http.Client
+		result2 error
 	}
 }
 
@@ -125,6 +135,39 @@ func (fake *FakeOauthConsumer) SetAdditionalParamsArgsForCall(i int) map[string]
 	fake.setAdditionalParamsMutex.RLock()
 	defer fake.setAdditionalParamsMutex.RUnlock()
 	return fake.setAdditionalParamsArgsForCall[i].params
+}
+
+func (fake *FakeOauthConsumer) MakeHttpClient(token *oauth.AccessToken) (*http.Client, error) {
+	fake.makeHttpClientMutex.Lock()
+	fake.makeHttpClientArgsForCall = append(fake.makeHttpClientArgsForCall, struct {
+		token *oauth.AccessToken
+	}{token})
+	fake.makeHttpClientMutex.Unlock()
+	if fake.MakeHttpClientStub != nil {
+		return fake.MakeHttpClientStub(token)
+	} else {
+		return fake.makeHttpClientReturns.result1, fake.makeHttpClientReturns.result2
+	}
+}
+
+func (fake *FakeOauthConsumer) MakeHttpClientCallCount() int {
+	fake.makeHttpClientMutex.RLock()
+	defer fake.makeHttpClientMutex.RUnlock()
+	return len(fake.makeHttpClientArgsForCall)
+}
+
+func (fake *FakeOauthConsumer) MakeHttpClientArgsForCall(i int) *oauth.AccessToken {
+	fake.makeHttpClientMutex.RLock()
+	defer fake.makeHttpClientMutex.RUnlock()
+	return fake.makeHttpClientArgsForCall[i].token
+}
+
+func (fake *FakeOauthConsumer) MakeHttpClientReturns(result1 *http.Client, result2 error) {
+	fake.MakeHttpClientStub = nil
+	fake.makeHttpClientReturns = struct {
+		result1 *http.Client
+		result2 error
+	}{result1, result2}
 }
 
 var _ auth.OauthConsumer = new(FakeOauthConsumer)
