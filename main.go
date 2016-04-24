@@ -31,7 +31,7 @@ func parseArgs() (bool, string) {
 	} else if len(os.Args) == 2 {
 		return false, os.Args[1]
 	} else {
-		fmt.Fprintf(os.Stderr, "Usage: %s dest [-savecreds]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [--savecreds] dest\n", os.Args[0])
 		os.Exit(1)
 		return false, "" // not reached
 	}
