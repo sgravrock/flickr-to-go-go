@@ -6,8 +6,7 @@ import (
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
 
-	"io/ioutil"
-
+	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
@@ -24,19 +23,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	resp, err := httpClient.Get("https://api.flickr.com/services/rest/?method=flickr.test.login&format=json&nojsoncallback=1")
+	flickrClient := flickrapi.NewClient(httpClient, "https://api.flickr.com")
+	username, err := flickrClient.GetUsername()
 	if err != nil {
 		fmt.Printf("Couldn't verify login: %s\n", err.Error())
 		os.Exit(1)
 	}
 
-	defer resp.Body.Close()
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Couldn't verify login: %s\n", err.Error())
-		os.Exit(1)
-	}
-	fmt.Println(string(buf))
+	fmt.Printf("You are logged in as %s.\n", username)
 }
 
 func parseArgs() (bool, string) {
