@@ -21,6 +21,9 @@ func Authenticate(key string, secret string, oauthClient OauthClient,
 		"https://www.flickr.com/services/oauth/request_token",
 		"https://www.flickr.com/services/oauth/authorize",
 		"https://www.flickr.com/services/oauth/access_token")
+	consumer.SetAdditionalParams(map[string]string{
+		"perms": "read",
+	})
 
 	requestToken, url, err := consumer.GetRequestTokenAndUrl("oob")
 	if err != nil {

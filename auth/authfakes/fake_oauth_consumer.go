@@ -29,6 +29,11 @@ type FakeOauthConsumer struct {
 		result1 *oauth.AccessToken
 		result2 error
 	}
+	SetAdditionalParamsStub        func(params map[string]string)
+	setAdditionalParamsMutex       sync.RWMutex
+	setAdditionalParamsArgsForCall []struct {
+		params map[string]string
+	}
 }
 
 func (fake *FakeOauthConsumer) GetRequestTokenAndUrl(callbackUrl string) (rtoken *oauth.RequestToken, loginUrl string, err error) {
@@ -97,6 +102,29 @@ func (fake *FakeOauthConsumer) AuthorizeTokenReturns(result1 *oauth.AccessToken,
 		result1 *oauth.AccessToken
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeOauthConsumer) SetAdditionalParams(params map[string]string) {
+	fake.setAdditionalParamsMutex.Lock()
+	fake.setAdditionalParamsArgsForCall = append(fake.setAdditionalParamsArgsForCall, struct {
+		params map[string]string
+	}{params})
+	fake.setAdditionalParamsMutex.Unlock()
+	if fake.SetAdditionalParamsStub != nil {
+		fake.SetAdditionalParamsStub(params)
+	}
+}
+
+func (fake *FakeOauthConsumer) SetAdditionalParamsCallCount() int {
+	fake.setAdditionalParamsMutex.RLock()
+	defer fake.setAdditionalParamsMutex.RUnlock()
+	return len(fake.setAdditionalParamsArgsForCall)
+}
+
+func (fake *FakeOauthConsumer) SetAdditionalParamsArgsForCall(i int) map[string]string {
+	fake.setAdditionalParamsMutex.RLock()
+	defer fake.setAdditionalParamsMutex.RUnlock()
+	return fake.setAdditionalParamsArgsForCall[i].params
 }
 
 var _ auth.OauthConsumer = new(FakeOauthConsumer)
