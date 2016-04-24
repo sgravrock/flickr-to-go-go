@@ -1,6 +1,9 @@
 package auth
 
-import "fmt"
+import (
+	"fmt"
+	"os/exec"
+)
 
 type consoleUiAdapter struct{}
 
@@ -9,9 +12,15 @@ func NewConsoleUiAdapter() UiAdapter {
 }
 
 func (a consoleUiAdapter) PromptForAccessCode(url string) (string, error) {
-	fmt.Println("(1) Go to: " + url)
-	fmt.Println("(2) Grant access. You should get back a verification code.")
-	fmt.Println("(3) Enter that verification code here: ")
+	if exec.Command("open", url).Run() == nil {
+		fmt.Println("The Flickr login page should have opened " +
+			"in your browser. Please log in.")
+	} else {
+		fmt.Printf("Open this in your browser: %s\n", url)
+	}
+
+	fmt.Println("After you've finished logging in, enter the " +
+		"code from your browser:")
 
 	verificationCode := ""
 	_, err := fmt.Scanln(&verificationCode)
