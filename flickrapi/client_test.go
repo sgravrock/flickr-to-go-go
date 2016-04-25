@@ -35,73 +35,23 @@ var _ = Describe("flickrapi.Client", func() {
 
 	Describe("Get", func() {
 		Context("with a successful response", func() {
-			var payload map[string]interface{}
+			var payload TestLoginPayload
 			var err error
 
 			BeforeEach(func() {
-				payload = map[string]interface{}{}
+				payload = TestLoginPayload{}
 				setupTestLoginSuccess(ts)
-				payload, err = subject.Get("flickr.test.login", nil)
+				err = subject.Get("flickr.test.login", nil, &payload)
 			})
 
-			It("should deserialize JSON", func() {
-				Expect(payload["stat"]).To(Equal("ok"))
-				user, ok := payload["user"].(map[string]interface{})
-				Expect(ok).To(BeTrue())
-				Expect(user["id"]).To(Equal("some-uid"))
-				username, ok := user["username"].(map[string]interface{})
-				Expect(ok).To(BeTrue())
-				Expect(username["_content"]).To(Equal("Some Username"))
+			It("should deserialize the payload", func() {
+				Expect(payload.Stat).To(Equal("ok"))
+				Expect(payload.User.Id).To(Equal("some-uid"))
+				Expect(payload.User.Username.Content).To(Equal("Some Username"))
 			})
 
-			It("should not return an error", func() {
+			It("should return nil", func() {
 				Expect(err).To(BeNil())
-			})
-		})
-
-		Context("with a 200 response describing an error", func() {
-			var payload map[string]interface{}
-			var err error
-
-			BeforeEach(func() {
-				payload = map[string]interface{}{}
-				err = nil
-				json := "{\"stat\":\"fail\",\"code\":1,\"message\":\"nope\" }"
-				ts.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET",
-							"/services/rest/",
-							"method=flickr.test.login&format=json&nojsoncallback=1"),
-						ghttp.RespondWith(200, json),
-					),
-				)
-				payload, err = subject.Get("flickr.test.login", nil)
-			})
-
-			It("should return an error", func() {
-				Expect(err).NotTo(BeNil())
-				Expect(err.Error()).To(ContainSubstring("nope"))
-			})
-		})
-
-		Context("with a non-200 response", func() {
-			var err error
-
-			BeforeEach(func() {
-				ts.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET",
-							"/services/rest/",
-							"method=flickr.test.login&format=json&nojsoncallback=1"),
-						ghttp.RespondWith(500, "oops"),
-					),
-				)
-				_, err = subject.Get("flickr.test.login", nil)
-			})
-
-			It("should return an error", func() {
-				Expect(err).NotTo(BeNil())
-				Expect(err.Error()).To(Equal("flickr.test.login returned status 500"))
 			})
 		})
 	})
@@ -121,7 +71,7 @@ var _ = Describe("flickrapi.Client", func() {
 				Expect(username).To(Equal("Some Username"))
 			})
 
-			It("should not return an error", func() {
+			It("should return nil", func() {
 				Expect(err).To(BeNil())
 			})
 		})
