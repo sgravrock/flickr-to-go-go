@@ -28,10 +28,18 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 	flickrClient := flickrapi.NewClient(httpClient, baseUrl)
 	username, err := flickrClient.GetUsername()
 	if err != nil {
-		fmt.Fprintf(stdout, "Couldn't verify login: %s\n", err.Error())
+		fmt.Fprintf(stderr, "Couldn't verify login: %s\n", err.Error())
 		return 1
 	}
 
 	fmt.Fprintf(stdout, "You are logged in as %s.\n", username)
+	fmt.Fprintln(stdout, "Downloading photo list")
+	photos, err := flickrClient.GetPhotos(500)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error downloading phot list: %s\n", err.Error())
+		return 1
+	}
+
+	fmt.Fprintf(stdout, "Got %d photos\n", len(photos))
 	return 0
 }

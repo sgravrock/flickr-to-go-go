@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 type Client interface {
@@ -14,6 +15,7 @@ type Client interface {
 
 	// Higher-level interfaces for specific requests
 	GetUsername() (string, error)
+	GetPhotos(pageSize int) ([]PhotoInfo, error)
 }
 
 func NewClient(authenticatedHttpClient *http.Client, url string) Client {
@@ -47,16 +49,19 @@ func (c flickrClient) Get(method string, params map[string]string, payload Flick
 }
 
 func (c flickrClient) buildUrl(method string, params map[string]string) (string, error) {
-	// TODO: include params
 	u, err := url.Parse(c.url)
 	if err != nil {
 		return "", err
 	}
 	u.Path = "/services/rest/"
+
 	q := u.Query()
 	q.Set("method", method)
 	q.Set("format", "json")
 	q.Set("nojsoncallback", "1")
+	for k, v := range params {
+		q.Set(k, v)
+	}
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
@@ -78,4 +83,17 @@ func (c flickrClient) GetUsername() (string, error) {
 		return "", err
 	}
 	return payload.User.Username.Content, nil
+}
+
+func (c flickrClient) GetPhotos(pageSize int) ([]PhotoInfo, error) {
+	payload := PeoplePhotosPayload{}
+	params := map[string]string{
+		"user_id":  "me",
+		"per_page": strconv.Itoa(pageSize),
+	}
+	err := c.Get("flickr.people.getPhotos", params, &payload)
+	if err != nil {
+		return nil, err
+	}
+	return payload.Photos.Photo, nil
 }
