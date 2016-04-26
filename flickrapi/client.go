@@ -41,6 +41,10 @@ func (c flickrClient) Get(method string, params map[string]string, payload Flick
 	if err != nil {
 		return err
 	}
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("%s returned status %d", method, response.StatusCode)
+		return errors.New(msg)
+	}
 	defer response.Body.Close()
 	err = json.NewDecoder(response.Body).Decode(payload)
 	if err != nil {
