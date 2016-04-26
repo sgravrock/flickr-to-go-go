@@ -26,18 +26,11 @@ type flickrClient struct {
 }
 
 func (c flickrClient) Get(method string, params map[string]string, payload FlickrPayload) error {
-	// TODO: include params
-	u, err := url.Parse(c.url)
+	url, err := c.buildUrl(method, params)
 	if err != nil {
 		return err
 	}
-	u.Path = "/services/rest/"
-	q := u.Query()
-	q.Set("method", method)
-	q.Set("format", "json")
-	q.Set("nojsoncallback", "1")
-	u.RawQuery = q.Encode()
-	response, err := c.httpClient.Get(u.String())
+	response, err := c.httpClient.Get(url)
 	if err != nil {
 		return err
 	}
@@ -51,6 +44,21 @@ func (c flickrClient) Get(method string, params map[string]string, payload Flick
 		return err
 	}
 	return verifyResponse(method, payload)
+}
+
+func (c flickrClient) buildUrl(method string, params map[string]string) (string, error) {
+	// TODO: include params
+	u, err := url.Parse(c.url)
+	if err != nil {
+		return "", err
+	}
+	u.Path = "/services/rest/"
+	q := u.Query()
+	q.Set("method", method)
+	q.Set("format", "json")
+	q.Set("nojsoncallback", "1")
+	u.RawQuery = q.Encode()
+	return u.String(), nil
 }
 
 func verifyResponse(method string, payload FlickrPayload) error {
