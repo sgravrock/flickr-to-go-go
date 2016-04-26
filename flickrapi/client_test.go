@@ -54,6 +54,31 @@ var _ = Describe("flickrapi.Client", func() {
 				Expect(err).To(BeNil())
 			})
 		})
+
+		Context("with a 200 response describing an error", func() {
+			var payload TestLoginPayload
+			var err error
+
+			BeforeEach(func() {
+				payload = TestLoginPayload{}
+				err = nil
+				json := "{\"stat\":\"fail\",\"code\":1,\"message\":\"nope\" }"
+				ts.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET",
+							"/services/rest/",
+							"method=flickr.test.login&format=json&nojsoncallback=1"),
+						ghttp.RespondWith(200, json),
+					),
+				)
+				err = subject.Get("flickr.test.login", nil, &payload)
+			})
+
+			It("should return an error", func() {
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(ContainSubstring("nope"))
+			})
+		})
 	})
 
 	Describe("GetUsername", func() {

@@ -2,13 +2,15 @@ package flickrapi
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 )
 
 type Client interface {
 	// Low-level interface
-	Get(method string, params map[string]string, payload interface{}) error
+	Get(method string, params map[string]string, payload FlickrPayload) error
 
 	// Higher-level interfaces for specific requests
 	GetUsername() (string, error)
@@ -23,7 +25,7 @@ type flickrClient struct {
 	url        string
 }
 
-func (c flickrClient) Get(method string, params map[string]string, payload interface{}) error {
+func (c flickrClient) Get(method string, params map[string]string, payload FlickrPayload) error {
 	// TODO: include params
 	u, err := url.Parse(c.url)
 	if err != nil {
@@ -40,7 +42,21 @@ func (c flickrClient) Get(method string, params map[string]string, payload inter
 		return err
 	}
 	defer response.Body.Close()
-	return json.NewDecoder(response.Body).Decode(payload)
+	err = json.NewDecoder(response.Body).Decode(payload)
+	if err != nil {
+		return err
+	}
+	return verifyResponse(method, payload)
+}
+
+func verifyResponse(method string, payload FlickrPayload) error {
+	basics := payload.Basics()
+	if basics.Stat != "ok" {
+		msg := fmt.Sprintf("%s failed: status %s, message %s",
+			method, basics.Stat, basics.Message)
+		return errors.New(msg)
+	}
+	return nil
 }
 
 func (c flickrClient) GetUsername() (string, error) {
@@ -49,6 +65,5 @@ func (c flickrClient) GetUsername() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// TODO handle non-"ok" stat
 	return payload.User.Username.Content, nil
 }
