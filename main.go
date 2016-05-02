@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sgravrock/flickr-to-go-go/app"
 	"github.com/sgravrock/flickr-to-go-go/auth"
-	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
@@ -15,21 +15,9 @@ func main() {
 	savecreds, dest := parseArgs()
 	filestore := storage.NewFileStorage(dest)
 	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
-	httpClient, err := authenticator.Authenticate(savecreds)
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-
-	flickrClient := flickrapi.NewClient(httpClient, "https://api.flickr.com")
-	username, err := flickrClient.GetUsername()
-	if err != nil {
-		fmt.Printf("Couldn't verify login: %s\n", err.Error())
-		os.Exit(1)
-	}
-
-	fmt.Printf("You are logged in as %s.\n", username)
+	exitcode := app.Run("https://api.flickr.com", savecreds, authenticator,
+		os.Stdout, os.Stderr)
+	os.Exit(exitcode)
 }
 
 func parseArgs() (bool, string) {
