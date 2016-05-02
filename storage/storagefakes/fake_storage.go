@@ -8,6 +8,12 @@ import (
 )
 
 type FakeStorage struct {
+	EnsureRootStub        func() error
+	ensureRootMutex       sync.RWMutex
+	ensureRootArgsForCall []struct{}
+	ensureRootReturns     struct {
+		result1 error
+	}
 	CreateStub        func(name string) (storage.File, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
@@ -26,6 +32,30 @@ type FakeStorage struct {
 		result1 storage.File
 		result2 error
 	}
+}
+
+func (fake *FakeStorage) EnsureRoot() error {
+	fake.ensureRootMutex.Lock()
+	fake.ensureRootArgsForCall = append(fake.ensureRootArgsForCall, struct{}{})
+	fake.ensureRootMutex.Unlock()
+	if fake.EnsureRootStub != nil {
+		return fake.EnsureRootStub()
+	} else {
+		return fake.ensureRootReturns.result1
+	}
+}
+
+func (fake *FakeStorage) EnsureRootCallCount() int {
+	fake.ensureRootMutex.RLock()
+	defer fake.ensureRootMutex.RUnlock()
+	return len(fake.ensureRootArgsForCall)
+}
+
+func (fake *FakeStorage) EnsureRootReturns(result1 error) {
+	fake.EnsureRootStub = nil
+	fake.ensureRootReturns = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeStorage) Create(name string) (storage.File, error) {

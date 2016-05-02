@@ -6,10 +6,18 @@ import (
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
+	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
 func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
-	stdout io.Writer, stderr io.Writer) int {
+	fileStore storage.Storage, stdout io.Writer, stderr io.Writer) int {
+
+	err := fileStore.EnsureRoot()
+	if err != nil {
+		msg := err.Error()[5:] // strip leading "stat "
+		fmt.Fprintln(stderr, msg)
+		return 1
+	}
 
 	httpClient, err := authenticator.Authenticate(savecreds)
 	if err != nil {

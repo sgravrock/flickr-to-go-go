@@ -7,6 +7,7 @@ import (
 )
 
 type Storage interface {
+	EnsureRoot() error
 	Create(name string) (File, error)
 	Open(name string) (File, error)
 }
@@ -25,6 +26,11 @@ type FileStorage struct{ Rootdir string }
 
 func NewFileStorage(rootDir string) Storage {
 	return &FileStorage{rootDir}
+}
+
+func (fs FileStorage) EnsureRoot() error {
+	_, err := os.Stat(fs.Rootdir)
+	return err
 }
 
 func (fs FileStorage) Create(name string) (File, error) {
