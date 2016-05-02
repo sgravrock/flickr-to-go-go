@@ -50,13 +50,13 @@ func (a *defaultAuthenticator) Authenticate(savecreds bool) (*http.Client, error
 		"perms": "read",
 	})
 
-	accessToken, err := getAccessToken(a.key, a.secret, a.filestore, consumer, a.ui)
+	accessToken, err := a.getAccessToken(consumer)
 	if err != nil {
 		return nil, err
 	}
 
 	if savecreds {
-		err := saveCredentials(a.filestore, accessToken)
+		err := a.saveCredentials(accessToken)
 		if err != nil {
 			return nil, err
 		}
@@ -65,12 +65,12 @@ func (a *defaultAuthenticator) Authenticate(savecreds bool) (*http.Client, error
 	return consumer.MakeHttpClient(accessToken)
 }
 
-func getAccessToken(key string, secret string, filestore storage.Storage,
-	consumer OauthConsumer, ui UiAdapter) (*oauth.AccessToken, error) {
+func (a *defaultAuthenticator) getAccessToken(consumer OauthConsumer) (
+	*oauth.AccessToken, error) {
 
 	// Try to read saved credentials. Handle all errors as if the file
 	// didn't exist.
-	f, err := filestore.Open("flickr-credentials")
+	f, err := a.filestore.Open("flickr-credentials")
 	if err == nil {
 		defer f.Close()
 		result := new(oauth.AccessToken)
@@ -80,18 +80,18 @@ func getAccessToken(key string, secret string, filestore storage.Storage,
 		}
 	}
 
-	return authLive(key, secret, consumer, ui)
+	return a.authLive(consumer)
 }
 
-func authLive(key string, secret string, consumer OauthConsumer,
-	ui UiAdapter) (*oauth.AccessToken, error) {
+func (a *defaultAuthenticator) authLive(consumer OauthConsumer) (
+	*oauth.AccessToken, error) {
 
 	requestToken, url, err := consumer.GetRequestTokenAndUrl("oob")
 	if err != nil {
 		return nil, err
 	}
 
-	accessCode, err := ui.PromptForAccessCode(url)
+	accessCode, err := a.ui.PromptForAccessCode(url)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +99,8 @@ func authLive(key string, secret string, consumer OauthConsumer,
 	return consumer.AuthorizeToken(requestToken, accessCode)
 }
 
-func saveCredentials(filestore storage.Storage, token *oauth.AccessToken) error {
-	f, err := filestore.Create("flickr-credentials")
+func (a *defaultAuthenticator) saveCredentials(token *oauth.AccessToken) error {
+	f, err := a.filestore.Create("flickr-credentials")
 	if err != nil {
 		return err
 	}
