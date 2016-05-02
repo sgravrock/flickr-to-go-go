@@ -13,7 +13,7 @@ func main() {
 	key := os.Getenv("FLICKR_API_KEY")
 	secret := os.Getenv("FLICKR_API_SECRET")
 	savecreds, dest := parseArgs()
-	filestore := storage.FileStorage{dest}
+	filestore := storage.NewFileStorage(dest)
 	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
 	httpClient, err := authenticator.Authenticate(savecreds)
 

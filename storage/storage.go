@@ -23,6 +23,10 @@ type File interface {
 
 type FileStorage struct{ Rootdir string }
 
+func NewFileStorage(rootDir string) Storage {
+	return &FileStorage{rootDir}
+}
+
 func (fs FileStorage) Create(name string) (File, error) {
 	return os.Create(path.Join(fs.Rootdir, name))
 }
