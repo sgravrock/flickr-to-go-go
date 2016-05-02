@@ -13,9 +13,12 @@ type UiAdapter interface {
 	PromptForAccessCode(url string) (string, error)
 }
 
-func Authenticate(key string, secret string, filestore storage.Storage,
-	savecreds bool, oauthClient OauthClient,
-	ui UiAdapter) (*http.Client, error) {
+type Authenticator interface {
+	Authenticate(savecreds bool) (*http.Client, error)
+}
+
+func NewAuthenticator(key string, secret string, filestore storage.Storage,
+	oauthClient OauthClient, ui UiAdapter) Authenticator {
 
 	if oauthClient == nil {
 		oauthClient = NewOauthClient()
@@ -24,9 +27,22 @@ func Authenticate(key string, secret string, filestore storage.Storage,
 		ui = NewConsoleUiAdapter()
 	}
 
-	consumer := oauthClient.NewConsumer(
-		key,
-		secret,
+	return &defaultAuthenticator{key, secret, filestore, oauthClient, ui}
+}
+
+type defaultAuthenticator struct {
+	key         string
+	secret      string
+	filestore   storage.Storage
+	oauthClient OauthClient
+	ui          UiAdapter
+}
+
+func (a *defaultAuthenticator) Authenticate(savecreds bool) (*http.Client, error) {
+
+	consumer := a.oauthClient.NewConsumer(
+		a.key,
+		a.secret,
 		"https://www.flickr.com/services/oauth/request_token",
 		"https://www.flickr.com/services/oauth/authorize",
 		"https://www.flickr.com/services/oauth/access_token")
@@ -34,13 +50,13 @@ func Authenticate(key string, secret string, filestore storage.Storage,
 		"perms": "read",
 	})
 
-	accessToken, err := getAccessToken(key, secret, filestore, consumer, ui)
+	accessToken, err := getAccessToken(a.key, a.secret, a.filestore, consumer, a.ui)
 	if err != nil {
 		return nil, err
 	}
 
 	if savecreds {
-		err := saveCredentials(filestore, accessToken)
+		err := saveCredentials(a.filestore, accessToken)
 		if err != nil {
 			return nil, err
 		}

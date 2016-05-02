@@ -19,7 +19,8 @@ import (
 	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 )
 
-var _ = Describe("Auth", func() {
+var _ = Describe("Authenticate", func() {
+	var subject Authenticator
 	var oauthClient authfakes.FakeOauthClient
 	var oauthConsumer *authfakes.FakeOauthConsumer
 	var ui *authfakes.FakeUiAdapter
@@ -45,6 +46,8 @@ var _ = Describe("Auth", func() {
 		fs.OpenStub = func(name string) (storage.File, error) {
 			return nil, errors.New("not mocked")
 		}
+
+		subject = NewAuthenticator("token", "secret", fs, &oauthClient, ui)
 	})
 
 	Context("When there are saved credentials", func() {
@@ -69,8 +72,7 @@ var _ = Describe("Auth", func() {
 			}
 			httpClient = http.Client{}
 			oauthConsumer.MakeHttpClientReturns(&httpClient, nil)
-			result, _ = Authenticate("theKey", "theSecret", fs, false,
-				&oauthClient, ui)
+			result, _ = subject.Authenticate(false)
 		})
 
 		AfterEach(func() {
@@ -96,8 +98,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("should return the error", func() {
-			t, err := Authenticate("theKey", "theSecret", fs, true,
-				&oauthClient, ui)
+			t, err := subject.Authenticate(true)
 			Expect(t).To(BeNil())
 			Expect(err).To(BeIdenticalTo(tokenError))
 		})
@@ -113,8 +114,7 @@ var _ = Describe("Auth", func() {
 		})
 
 		It("should prompt the user for authentication", func() {
-			Authenticate("theKey", "theSecret", fs, true,
-				&oauthClient, ui)
+			subject.Authenticate(false)
 			Expect(ui.PromptForAccessCodeCallCount()).To(Equal(1))
 			Expect(ui.PromptForAccessCodeArgsForCall(0)).To(Equal("the://url"))
 		})
@@ -128,8 +128,7 @@ var _ = Describe("Auth", func() {
 			})
 
 			It("should return the error", func() {
-				t, err := Authenticate("theKey", "theSecret",
-					fs, true, &oauthClient, ui)
+				t, err := subject.Authenticate(true)
 				Expect(t).To(BeNil())
 				Expect(err).To(BeIdenticalTo(codeError))
 			})
@@ -141,8 +140,7 @@ var _ = Describe("Auth", func() {
 			})
 
 			It("should authorize the request token and code", func() {
-				Authenticate("theKey", "theSecret", fs, true,
-					&oauthClient, ui)
+				subject.Authenticate(true)
 				Expect(oauthConsumer.AuthorizeTokenCallCount()).To(Equal(1))
 				token, code := oauthConsumer.AuthorizeTokenArgsForCall(0)
 				Expect(token).To(Equal(&requestToken))
@@ -158,8 +156,7 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("should return the error", func() {
-					t, err := Authenticate("theKey", "theSecret",
-						fs, true, &oauthClient, ui)
+					t, err := subject.Authenticate(true)
 					Expect(t).To(BeNil())
 					Expect(err).To(BeIdenticalTo(authError))
 				})
@@ -180,8 +177,7 @@ var _ = Describe("Auth", func() {
 				})
 
 				It("should return the created HTTP client", func() {
-					result, err := Authenticate("theKey", "theSecret",
-						fs, false, &oauthClient, ui)
+					result, err := subject.Authenticate(false)
 					Expect(result).To(BeIdenticalTo(&httpClient))
 					Expect(err).To(BeNil())
 				})
@@ -193,8 +189,7 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("should save the access token", func() {
-						Authenticate("theKey", "theSecret",
-							fs, true, &oauthClient, ui)
+						subject.Authenticate(true)
 						Expect(fs.CreateCallCount()).To(Equal(1))
 						Expect(fs.CreateArgsForCall(0)).To(Equal("flickr-credentials"))
 						Expect(credsFile.WriteCallCount()).To(BeNumerically(">", 0))
@@ -203,8 +198,7 @@ var _ = Describe("Auth", func() {
 
 				Context("When savecreds is false", func() {
 					It("should not save the access token", func() {
-						Authenticate("theKey", "theSecret",
-							fs, false, &oauthClient, ui)
+						subject.Authenticate(false)
 						Expect(fs.CreateCallCount()).To(Equal(0))
 					})
 				})

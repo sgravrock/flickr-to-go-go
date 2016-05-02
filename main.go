@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
-
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
@@ -15,8 +14,8 @@ func main() {
 	secret := os.Getenv("FLICKR_API_SECRET")
 	savecreds, dest := parseArgs()
 	filestore := storage.FileStorage{dest}
-	httpClient, err := auth.Authenticate(key, secret, filestore,
-		savecreds, nil, nil)
+	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
+	httpClient, err := authenticator.Authenticate(savecreds)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
