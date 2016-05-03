@@ -56,8 +56,11 @@ func (c flickrClient) getPaged(method string, params map[string]string,
 
 	for {
 		params["page"] = strconv.Itoa(pagenum)
-		// TODO: check both HTTP errors and unsuccessful responses
-		c.Get(method, params, payload)
+		err := c.Get(method, params, payload)
+		if err != nil {
+			return err
+		}
+
 		addPage()
 		numPages := payload.PageInfo().Pages
 

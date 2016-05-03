@@ -142,11 +142,11 @@ var _ = Describe("flickrapi.Client", func() {
 	})
 
 	Describe("GetPhotolist", func() {
-		var payload []PhotoInfo
+		var result []PhotoInfo
 		var err error
 
 		JustBeforeEach(func() {
-			payload, err = subject.GetPhotos(2)
+			result, err = subject.GetPhotos(2)
 		})
 
 		Context("with a successful single-page response", func() {
@@ -186,7 +186,7 @@ var _ = Describe("flickrapi.Client", func() {
 						Isfamily: 0,
 					},
 				}
-				Expect(payload).To(Equal(expected))
+				Expect(result).To(Equal(expected))
 			})
 
 			It("should not return an error", func() {
@@ -196,7 +196,24 @@ var _ = Describe("flickrapi.Client", func() {
 
 		Context("with multiple pages", func() {
 			Context("with an error", func() {
+				BeforeEach(func() {
+					ts.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET",
+								"/services/rest/",
+								"method=flickr.people.getPhotos&user_id=me&page=1&per_page=2&format=json&nojsoncallback=1"),
+							ghttp.RespondWith(500, "oops"),
+						),
+					)
+				})
 
+				It("should return a nil photo list", func() {
+					Expect(result).To(BeNil())
+				})
+
+				It("should return an error", func() {
+					Expect(err).NotTo(BeNil())
+				})
 			})
 
 			Context("with all successful responses", func() {
@@ -218,7 +235,7 @@ var _ = Describe("flickrapi.Client", func() {
 					setupPhotlistPages(ts, pages)
 				})
 
-				It("should populate the payload", func() {
+				It("should return the list of photos", func() {
 					expected := []PhotoInfo{
 						PhotoInfo{
 							Id:       "123",
@@ -254,7 +271,7 @@ var _ = Describe("flickrapi.Client", func() {
 							Isfamily: 1,
 						},
 					}
-					Expect(payload).To(Equal(expected))
+					Expect(result).To(Equal(expected))
 				})
 
 				It("should not return an error", func() {
