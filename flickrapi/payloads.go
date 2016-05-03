@@ -4,9 +4,19 @@ type FlickrPayload interface {
 	Basics() *FlickrPayloadBasics
 }
 
+type FlickrPaginatedPayload interface {
+	FlickrPayload
+	PageInfo() *FlickrPayloadPageInfo
+}
+
 type FlickrPayloadBasics struct {
 	Stat    string
 	Message string
+}
+
+type FlickrPayloadPageInfo struct {
+	Page  int
+	Pages int
 }
 
 type TestLoginPayload struct {
@@ -36,7 +46,12 @@ func (p *PeoplePhotosPayload) Basics() *FlickrPayloadBasics {
 	return &(p.FlickrPayloadBasics)
 }
 
+func (p *PeoplePhotosPayload) PageInfo() *FlickrPayloadPageInfo {
+	return &(p.Photos.FlickrPayloadPageInfo)
+}
+
 type PeoplePhotosPhotos struct {
+	FlickrPayloadPageInfo
 	Photo []PhotoInfo
 }
 

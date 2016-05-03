@@ -45,7 +45,28 @@ func (c flickrClient) Get(method string, params map[string]string, payload Flick
 	if err != nil {
 		return err
 	}
+
 	return verifyResponse(method, payload)
+}
+
+func (c flickrClient) getPaged(method string, params map[string]string,
+	payload FlickrPaginatedPayload, addPage func()) error {
+
+	pagenum := 1
+
+	for {
+		params["page"] = strconv.Itoa(pagenum)
+		// TODO: check both HTTP errors and unsuccessful responses
+		c.Get(method, params, payload)
+		addPage()
+		numPages := payload.PageInfo().Pages
+
+		if numPages == 0 || pagenum >= numPages {
+			return nil
+		}
+
+		pagenum++
+	}
 }
 
 func (c flickrClient) buildUrl(method string, params map[string]string) (string, error) {
@@ -85,15 +106,21 @@ func (c flickrClient) GetUsername() (string, error) {
 	return payload.User.Username.Content, nil
 }
 
+// func (c flickrClient) getPaged(method string, params map[string]string,
+//	payload FlickrPayload, addPage func(page interface{})) error {
+
 func (c flickrClient) GetPhotos(pageSize int) ([]PhotoInfo, error) {
 	payload := PeoplePhotosPayload{}
+	result := []PhotoInfo{}
 	params := map[string]string{
 		"user_id":  "me",
 		"per_page": strconv.Itoa(pageSize),
 	}
-	err := c.Get("flickr.people.getPhotos", params, &payload)
+	err := c.getPaged("flickr.people.getPhotos", params, &payload, func() {
+		result = append(result, payload.Photos.Photo...)
+	})
 	if err != nil {
 		return nil, err
 	}
-	return payload.Photos.Photo, nil
+	return result, nil
 }

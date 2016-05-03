@@ -1,6 +1,8 @@
 package flickrapi_test
 
 import (
+	"fmt"
+
 	. "github.com/sgravrock/flickr-to-go-go/flickrapi"
 
 	"net/http"
@@ -20,6 +22,20 @@ func setupTestLoginSuccess(ts *ghttp.Server) {
 			ghttp.RespondWith(200, json),
 		),
 	)
+}
+
+func setupPhotlistPages(ts *ghttp.Server, pages []string) {
+	for i := 0; i < len(pages); i++ {
+		params := fmt.Sprintf("method=flickr.people.getPhotos&user_id=me&page=%d&per_page=2&format=json&nojsoncallback=1", i+1)
+		ts.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET",
+					"/services/rest/",
+					params),
+				ghttp.RespondWith(200, pages[i]),
+			),
+		)
+	}
 }
 
 var _ = Describe("flickrapi.Client", func() {
@@ -126,28 +142,23 @@ var _ = Describe("flickrapi.Client", func() {
 	})
 
 	Describe("GetPhotolist", func() {
-		Context("with a successful response", func() {
-			var payload []PhotoInfo
-			var err error
+		var payload []PhotoInfo
+		var err error
 
+		JustBeforeEach(func() {
+			payload, err = subject.GetPhotos(2)
+		})
+
+		Context("with a successful single-page response", func() {
 			BeforeEach(func() {
-				json := `{"photos":{"page":1,"pages":"1","perpage":2,
+				pages := []string{`{"photos":{"page":1,"pages":1,"perpage":2,
 				"total":"2","photo":[{"id":"123","owner":"1234@N02",
 				"secret":"asdf","server":"1518","farm":2,"title":"t1",
 				"ispublic":1,"isfriend":0,"isfamily":0},{"id":"456",
 				"owner":"1234@N02","secret":"qwer","server":"1521",
 				"farm":2,"title":"t2","ispublic":0,"isfriend":1,"isfamily":0}
-				]},"stat":"ok"}`
-				ts.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET",
-							"/services/rest/",
-							"method=flickr.people.getPhotos&user_id=me&per_page=2&format=json&nojsoncallback=1"),
-						ghttp.RespondWith(200, json),
-					),
-				)
-
-				payload, err = subject.GetPhotos(2)
+				]},"stat":"ok"}`}
+				setupPhotlistPages(ts, pages)
 			})
 
 			It("should populate the payload", func() {
@@ -178,8 +189,77 @@ var _ = Describe("flickrapi.Client", func() {
 				Expect(payload).To(Equal(expected))
 			})
 
-			It("should return nil", func() {
+			It("should not return an error", func() {
 				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("with multiple pages", func() {
+			Context("with an error", func() {
+
+			})
+
+			Context("with all successful responses", func() {
+				BeforeEach(func() {
+					pages := []string{
+						`{"photos":{"page":1,"pages":2,"perpage":2,
+						"total":"3","photo":[{"id":"123","owner":"1234@N02",
+						"secret":"asdf","server":"1518","farm":2,"title":"t1",
+						"ispublic":1,"isfriend":0,"isfamily":0},{"id":"456",
+						"owner":"1234@N02","secret":"qwer","server":"1521",
+						"farm":2,"title":"t2","ispublic":0,"isfriend":1,"isfamily":0}
+						]},"stat":"ok"}`,
+						`{"photos":{"page":2,"pages":2,"perpage":2,
+						"total":"3","photo":[{"id":"789","owner":"1234@N02",
+						"secret":"zxcv","server":"1518","farm":2,"title":"t3",
+						"ispublic":0,"isfriend":0,"isfamily":1}
+						]},"stat":"ok"}`,
+					}
+					setupPhotlistPages(ts, pages)
+				})
+
+				It("should populate the payload", func() {
+					expected := []PhotoInfo{
+						PhotoInfo{
+							Id:       "123",
+							Owner:    "1234@N02",
+							Secret:   "asdf",
+							Server:   "1518",
+							Farm:     2,
+							Title:    "t1",
+							Ispublic: 1,
+							Isfriend: 0,
+							Isfamily: 0,
+						},
+						PhotoInfo{
+							Id:       "456",
+							Owner:    "1234@N02",
+							Secret:   "qwer",
+							Server:   "1521",
+							Farm:     2,
+							Title:    "t2",
+							Ispublic: 0,
+							Isfriend: 1,
+							Isfamily: 0,
+						},
+						PhotoInfo{
+							Id:       "789",
+							Owner:    "1234@N02",
+							Secret:   "zxcv",
+							Server:   "1518",
+							Farm:     2,
+							Title:    "t3",
+							Ispublic: 0,
+							Isfriend: 0,
+							Isfamily: 1,
+						},
+					}
+					Expect(payload).To(Equal(expected))
+				})
+
+				It("should not return an error", func() {
+					Expect(err).To(BeNil())
+				})
 			})
 		})
 	})
