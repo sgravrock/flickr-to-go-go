@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	key := os.Getenv("FLICKR_API_KEY")
-	secret := os.Getenv("FLICKR_API_SECRET")
+	key := requireEnv("FLICKR_API_KEY")
+	secret := requireEnv("FLICKR_API_SECRET")
 	savecreds, dest := parseArgs()
 	filestore := storage.NewFileStorage(dest)
 	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
@@ -20,6 +20,15 @@ func main() {
 	exitcode := app.Run("https://api.flickr.com", savecreds, authenticator,
 		downloader, filestore, os.Stdout, os.Stderr)
 	os.Exit(exitcode)
+}
+
+func requireEnv(name string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		fmt.Fprintf(os.Stderr, "Please set the %s environment variable\n", name)
+		os.Exit(1)
+	}
+	return value
 }
 
 func parseArgs() (bool, string) {
