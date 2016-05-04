@@ -122,19 +122,7 @@ func (c flickrClient) GetUsername() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	user, ok := payload["user"].(map[string]interface{})
-	if !ok {
-		return "", errors.New("Unexpected API call result format (no user)")
-	}
-	username, ok := user["username"].(map[string]interface{})
-	if !ok {
-		return "", errors.New("Unexpected API call result format (no user.username)")
-	}
-	value, ok := username["_content"].(string)
-	if !ok {
-		return "", errors.New("Unexpected API call result format (no user.username._content)")
-	}
-	return value, nil
+	return requireString(payload, []string{"user", "username", "_content"})
 }
 
 func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
@@ -145,14 +133,11 @@ func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
 	}
 	err := c.getPaged("flickr.people.getPhotos", params, "photos",
 		func(pagePayload map[string]interface{}) error {
-			wpr, ok := pagePayload["photos"].(map[string]interface{})
-			if !ok {
-				return errors.New("Unexpected API call result format (no photos)")
+			photos, err := requireList(pagePayload, []string{"photos", "photo"})
+			if err != nil {
+				return err
 			}
-			photos, ok := wpr["photo"].([]interface{})
-			if !ok {
-				return errors.New("Unexpected API call result format (no photos.photo)")
-			}
+
 			for _, p := range photos {
 				photo, ok := p.(map[string]interface{})
 				if !ok {
@@ -179,4 +164,54 @@ func (c flickrClient) GetPhotoInfo(photoId string) (map[string]interface{}, erro
 		return nil, errors.New("Unexpected API call result format (no photo)")
 	}
 	return photo, nil
+}
+
+func requireList(doc map[string]interface{}, path []string) ([]interface{}, error) {
+	it, err := require(doc, path)
+	if err != nil {
+		return nil, err
+	}
+
+	list, ok := it.([]interface{})
+	if !ok {
+		msg := fmt.Sprintf("Unexpected API call result format (no %s or wrong type)",
+			path[len(path)-1])
+		return nil, errors.New(msg)
+	}
+
+	return list, nil
+}
+
+func requireString(doc map[string]interface{}, path []string) (string, error) {
+	it, err := require(doc, path)
+	if err != nil {
+		return "", err
+	}
+
+	s, ok := it.(string)
+	if !ok {
+		msg := fmt.Sprintf("Unexpected API call result format (no %s or wrong type)",
+			path[len(path)-1])
+		return "", errors.New(msg)
+	}
+
+	return s, nil
+}
+
+func require(doc map[string]interface{}, path []string) (interface{}, error) {
+	pos := doc
+	for i, k := range path {
+		it := pos[k]
+		if i == len(path)-1 {
+			return it, nil
+		}
+		n, ok := it.(map[string]interface{})
+		if !ok {
+			msg := fmt.Sprintf("Unexpected API call result format (no %s or wrong type)", k)
+			return nil, errors.New(msg)
+		}
+		pos = n
+	}
+
+	return nil, errors.New("Can't happen") // not reached
 }
