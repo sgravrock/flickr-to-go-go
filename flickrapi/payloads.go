@@ -52,10 +52,10 @@ func (p *PeoplePhotosPayload) PageInfo() *FlickrPayloadPageInfo {
 
 type PeoplePhotosPhotos struct {
 	FlickrPayloadPageInfo
-	Photo []PhotoInfo
+	Photo []PhotoListEntry
 }
 
-type PhotoInfo struct {
+type PhotoListEntry struct {
 	Id       string
 	Owner    string
 	Secret   string

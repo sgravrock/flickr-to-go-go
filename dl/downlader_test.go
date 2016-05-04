@@ -25,7 +25,7 @@ var _ = Describe("Downloader", func() {
 
 	Describe("DownloadPhotolist", func() {
 		var err error
-		var result []flickrapi.PhotoInfo
+		var result []flickrapi.PhotoListEntry
 
 		JustBeforeEach(func() {
 			result, err = subject.DownloadPhotolist(flickrClient, fs)
@@ -51,10 +51,10 @@ var _ = Describe("Downloader", func() {
 		})
 
 		Context("When the photo list fetch succeeds", func() {
-			var expected []flickrapi.PhotoInfo
+			var expected []flickrapi.PhotoListEntry
 			BeforeEach(func() {
-				expected = []flickrapi.PhotoInfo{
-					flickrapi.PhotoInfo{
+				expected = []flickrapi.PhotoListEntry{
+					flickrapi.PhotoListEntry{
 						Id:       "123",
 						Owner:    "1234@N02",
 						Secret:   "asdf",

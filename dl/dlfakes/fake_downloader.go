@@ -10,19 +10,19 @@ import (
 )
 
 type FakeDownloader struct {
-	DownloadPhotolistStub        func(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoInfo, error)
+	DownloadPhotolistStub        func(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
 	downloadPhotolistMutex       sync.RWMutex
 	downloadPhotolistArgsForCall []struct {
 		flickr flickrapi.Client
 		fs     storage.Storage
 	}
 	downloadPhotolistReturns struct {
-		result1 []flickrapi.PhotoInfo
+		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}
 }
 
-func (fake *FakeDownloader) DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoInfo, error) {
+func (fake *FakeDownloader) DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
 	fake.downloadPhotolistMutex.Lock()
 	fake.downloadPhotolistArgsForCall = append(fake.downloadPhotolistArgsForCall, struct {
 		flickr flickrapi.Client
@@ -48,10 +48,10 @@ func (fake *FakeDownloader) DownloadPhotolistArgsForCall(i int) (flickrapi.Clien
 	return fake.downloadPhotolistArgsForCall[i].flickr, fake.downloadPhotolistArgsForCall[i].fs
 }
 
-func (fake *FakeDownloader) DownloadPhotolistReturns(result1 []flickrapi.PhotoInfo, result2 error) {
+func (fake *FakeDownloader) DownloadPhotolistReturns(result1 []flickrapi.PhotoListEntry, result2 error) {
 	fake.DownloadPhotolistStub = nil
 	fake.downloadPhotolistReturns = struct {
-		result1 []flickrapi.PhotoInfo
+		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}{result1, result2}
 }

@@ -142,7 +142,7 @@ var _ = Describe("flickrapi.Client", func() {
 	})
 
 	Describe("GetPhotolist", func() {
-		var result []PhotoInfo
+		var result []PhotoListEntry
 		var err error
 
 		JustBeforeEach(func() {
@@ -162,8 +162,8 @@ var _ = Describe("flickrapi.Client", func() {
 			})
 
 			It("should populate the payload", func() {
-				expected := []PhotoInfo{
-					PhotoInfo{
+				expected := []PhotoListEntry{
+					PhotoListEntry{
 						Id:       "123",
 						Owner:    "1234@N02",
 						Secret:   "asdf",
@@ -174,7 +174,7 @@ var _ = Describe("flickrapi.Client", func() {
 						Isfriend: 0,
 						Isfamily: 0,
 					},
-					PhotoInfo{
+					PhotoListEntry{
 						Id:       "456",
 						Owner:    "1234@N02",
 						Secret:   "qwer",
@@ -236,8 +236,8 @@ var _ = Describe("flickrapi.Client", func() {
 				})
 
 				It("should return the list of photos", func() {
-					expected := []PhotoInfo{
-						PhotoInfo{
+					expected := []PhotoListEntry{
+						PhotoListEntry{
 							Id:       "123",
 							Owner:    "1234@N02",
 							Secret:   "asdf",
@@ -248,7 +248,7 @@ var _ = Describe("flickrapi.Client", func() {
 							Isfriend: 0,
 							Isfamily: 0,
 						},
-						PhotoInfo{
+						PhotoListEntry{
 							Id:       "456",
 							Owner:    "1234@N02",
 							Secret:   "qwer",
@@ -259,7 +259,7 @@ var _ = Describe("flickrapi.Client", func() {
 							Isfriend: 1,
 							Isfamily: 0,
 						},
-						PhotoInfo{
+						PhotoListEntry{
 							Id:       "789",
 							Owner:    "1234@N02",
 							Secret:   "zxcv",

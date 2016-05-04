@@ -6,7 +6,7 @@ import (
 )
 
 type Downloader interface {
-	DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoInfo, error)
+	DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
 }
 
 func NewDownloader() Downloader {
@@ -16,7 +16,7 @@ func NewDownloader() Downloader {
 type downloader struct{}
 
 func (d *downloader) DownloadPhotolist(client flickrapi.Client,
-	fs storage.Storage) ([]flickrapi.PhotoInfo, error) {
+	fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
 
 	photos, err := client.GetPhotos(500)
 	if err != nil {

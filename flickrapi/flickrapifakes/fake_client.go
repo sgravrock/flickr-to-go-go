@@ -25,13 +25,13 @@ type FakeClient struct {
 		result1 string
 		result2 error
 	}
-	GetPhotosStub        func(pageSize int) ([]flickrapi.PhotoInfo, error)
+	GetPhotosStub        func(pageSize int) ([]flickrapi.PhotoListEntry, error)
 	getPhotosMutex       sync.RWMutex
 	getPhotosArgsForCall []struct {
 		pageSize int
 	}
 	getPhotosReturns struct {
-		result1 []flickrapi.PhotoInfo
+		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}
 }
@@ -95,7 +95,7 @@ func (fake *FakeClient) GetUsernameReturns(result1 string, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) GetPhotos(pageSize int) ([]flickrapi.PhotoInfo, error) {
+func (fake *FakeClient) GetPhotos(pageSize int) ([]flickrapi.PhotoListEntry, error) {
 	fake.getPhotosMutex.Lock()
 	fake.getPhotosArgsForCall = append(fake.getPhotosArgsForCall, struct {
 		pageSize int
@@ -120,10 +120,10 @@ func (fake *FakeClient) GetPhotosArgsForCall(i int) int {
 	return fake.getPhotosArgsForCall[i].pageSize
 }
 
-func (fake *FakeClient) GetPhotosReturns(result1 []flickrapi.PhotoInfo, result2 error) {
+func (fake *FakeClient) GetPhotosReturns(result1 []flickrapi.PhotoListEntry, result2 error) {
 	fake.GetPhotosStub = nil
 	fake.getPhotosReturns = struct {
-		result1 []flickrapi.PhotoInfo
+		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}{result1, result2}
 }
