@@ -109,9 +109,6 @@ func (c flickrClient) GetUsername() (string, error) {
 	return payload.User.Username.Content, nil
 }
 
-// func (c flickrClient) getPaged(method string, params map[string]string,
-//	payload FlickrPayload, addPage func(page interface{})) error {
-
 func (c flickrClient) GetPhotos(pageSize int) ([]PhotoInfo, error) {
 	payload := PeoplePhotosPayload{}
 	result := []PhotoInfo{}

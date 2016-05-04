@@ -5,12 +5,14 @@ import (
 	"io"
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
+	"github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
 func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
-	fileStore storage.Storage, stdout io.Writer, stderr io.Writer) int {
+	downloader dl.Downloader, fileStore storage.Storage, stdout io.Writer,
+	stderr io.Writer) int {
 
 	err := fileStore.EnsureRoot()
 	if err != nil {
@@ -26,17 +28,10 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 	}
 
 	flickrClient := flickrapi.NewClient(httpClient, baseUrl)
-	username, err := flickrClient.GetUsername()
-	if err != nil {
-		fmt.Fprintf(stderr, "Couldn't verify login: %s\n", err.Error())
-		return 1
-	}
-
-	fmt.Fprintf(stdout, "You are logged in as %s.\n", username)
 	fmt.Fprintln(stdout, "Downloading photo list")
-	photos, err := flickrClient.GetPhotos(500)
+	photos, err := downloader.DownloadPhotolist(flickrClient)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error downloading phot list: %s\n", err.Error())
+		fmt.Fprintf(stderr, "Error downloading photo list: %s\n", err.Error())
 		return 1
 	}
 
