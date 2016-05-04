@@ -11,12 +11,12 @@ import (
 
 type Client interface {
 	// Low-level interface
-	Get(method string, params map[string]string, payload FlickrPayload) error
+	Get(method string, params map[string]string) (map[string]interface{}, error)
 
 	// Higher-level interfaces for specific requests
 	GetUsername() (string, error)
 	GetPhotos(pageSize int) ([]PhotoListEntry, error)
-	GetPhotoInfo(photoId string) (PhotoInfo, error)
+	GetPhotoInfo(photoId string) (map[string]interface{}, error)
 }
 
 func NewClient(authenticatedHttpClient *http.Client, url string) Client {
@@ -28,42 +28,58 @@ type flickrClient struct {
 	url        string
 }
 
-func (c flickrClient) Get(method string, params map[string]string, payload FlickrPayload) error {
+func (c flickrClient) Get(method string, params map[string]string) (map[string]interface{}, error) {
 	url, err := c.buildUrl(method, params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	response, err := c.httpClient.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("%s returned status %d", method, response.StatusCode)
-		return errors.New(msg)
+		return nil, errors.New(msg)
 	}
 	defer response.Body.Close()
-	err = json.NewDecoder(response.Body).Decode(payload)
+	var payload map[string]interface{}
+	err = json.NewDecoder(response.Body).Decode(&payload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return verifyResponse(method, payload)
+	err = verifyResponse(method, payload)
+	return payload, err
 }
 
 func (c flickrClient) getPaged(method string, params map[string]string,
-	payload FlickrPaginatedPayload, addPage func()) error {
+	pageInfoKey string, addPage func(map[string]interface{}) error) error {
 
 	pagenum := 1
 
 	for {
 		params["page"] = strconv.Itoa(pagenum)
-		err := c.Get(method, params, payload)
+		payload, err := c.Get(method, params)
 		if err != nil {
 			return err
 		}
 
-		addPage()
-		numPages := payload.PageInfo().Pages
+		err = addPage(payload)
+		if err != nil {
+			return err
+		}
+
+		pageInfo, ok := payload[pageInfoKey].(map[string]interface{})
+		if !ok {
+			msg := fmt.Sprintf("Unexpected API call result format (no %s)", pageInfoKey)
+			return errors.New(msg)
+		}
+		n, ok := pageInfo["pages"].(float64)
+		if !ok {
+			msg := fmt.Sprintf("Unexpected API call result format (no %s.pages)", pageInfoKey)
+			return errors.New(msg)
+		}
+		numPages := int(n)
 
 		if numPages == 0 || pagenum >= numPages {
 			return nil
@@ -91,44 +107,76 @@ func (c flickrClient) buildUrl(method string, params map[string]string) (string,
 	return u.String(), nil
 }
 
-func verifyResponse(method string, payload FlickrPayload) error {
-	basics := payload.Basics()
-	if basics.Stat != "ok" {
-		msg := fmt.Sprintf("%s failed: status %s, message %s",
-			method, basics.Stat, basics.Message)
-		return errors.New(msg)
+func verifyResponse(method string, payload map[string]interface{}) error {
+	if payload["stat"] == "ok" {
+		return nil
 	}
-	return nil
+
+	msg := fmt.Sprintf("API call failed with status: %s, message: %s",
+		payload["stat"], payload["message"])
+	return errors.New(msg)
 }
 
 func (c flickrClient) GetUsername() (string, error) {
-	payload := TestLoginPayload{}
-	err := c.Get("flickr.test.login", nil, &payload)
+	payload, err := c.Get("flickr.test.login", nil)
 	if err != nil {
 		return "", err
 	}
-	return payload.User.Username.Content, nil
+	user, ok := payload["user"].(map[string]interface{})
+	if !ok {
+		return "", errors.New("Unexpected API call result format (no user)")
+	}
+	username, ok := user["username"].(map[string]interface{})
+	if !ok {
+		return "", errors.New("Unexpected API call result format (no user.username)")
+	}
+	value, ok := username["_content"].(string)
+	if !ok {
+		return "", errors.New("Unexpected API call result format (no user.username._content)")
+	}
+	return value, nil
 }
 
 func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
-	payload := PeoplePhotosPayload{}
 	result := []PhotoListEntry{}
 	params := map[string]string{
 		"user_id":  "me",
 		"per_page": strconv.Itoa(pageSize),
 	}
-	err := c.getPaged("flickr.people.getPhotos", params, &payload, func() {
-		result = append(result, payload.Photos.Photo...)
-	})
+	err := c.getPaged("flickr.people.getPhotos", params, "photos",
+		func(pagePayload map[string]interface{}) error {
+			wpr, ok := pagePayload["photos"].(map[string]interface{})
+			if !ok {
+				return errors.New("Unexpected API call result format (no photos)")
+			}
+			photos, ok := wpr["photo"].([]interface{})
+			if !ok {
+				return errors.New("Unexpected API call result format (no photos.photo)")
+			}
+			for _, p := range photos {
+				photo, ok := p.(map[string]interface{})
+				if !ok {
+					return errors.New("Unexpected API call result format (non-object in photos.photo)")
+				}
+				result = append(result, PhotoListEntry{photo})
+			}
+			return nil
+		})
+
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+
 }
 
-func (c flickrClient) GetPhotoInfo(photoId string) (PhotoInfo, error) {
-	payload := PhotoInfoPayload{}
+func (c flickrClient) GetPhotoInfo(photoId string) (map[string]interface{}, error) {
 	params := map[string]string{"photo_id": photoId}
-	err := c.Get("flickr.photos.getInfo", params, &payload)
-	return payload.Photo, err
+	// TODO: test and handle errors
+	payload, _ := c.Get("flickr.photos.getInfo", params)
+	photo, ok := payload["photo"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New("Unexpected API call result format (no photo)")
+	}
+	return photo, nil
 }

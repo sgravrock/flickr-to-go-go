@@ -83,8 +83,8 @@ var _ = Describe("App", func() {
 
 		BeforeEach(func() {
 			photos = []flickrapi.PhotoListEntry{
-				flickrapi.PhotoListEntry{Id: "123"},
-				flickrapi.PhotoListEntry{Id: "456"},
+				flickrapi.PhotoListEntry{Data: map[string]interface{}{"id": "123"}},
+				flickrapi.PhotoListEntry{Data: map[string]interface{}{"id": "456"}},
 			}
 			downloader.DownloadPhotolistReturns(photos, nil)
 		})

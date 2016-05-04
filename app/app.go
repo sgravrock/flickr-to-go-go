@@ -38,11 +38,17 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 	fmt.Fprintf(stdout, "Got %d photos\n", len(photos))
 
 	for _, p := range photos {
-		fmt.Fprintf(stdout, "Downloading info for photo %s\n", p.Id)
-		err = downloader.DownloadPhotoInfo(flickrClient, fileStore, p.Id)
+		id, err := p.Id()
+		if err != nil {
+			fmt.Fprintln(stderr, err.Error())
+			return 1
+		}
+
+		fmt.Fprintf(stdout, "Downloading info for photo %s\n", id)
+		err = downloader.DownloadPhotoInfo(flickrClient, fileStore, id)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error downloading info for %s: %s\n",
-				p.Id, err.Error())
+				id, err.Error())
 			return 1
 		}
 	}

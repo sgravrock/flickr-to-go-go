@@ -51,29 +51,25 @@ var _ = Describe("Downloader", func() {
 		})
 
 		Context("When the photo list fetch succeeds", func() {
-			var expected []flickrapi.PhotoListEntry
+			var photolist []flickrapi.PhotoListEntry
+			var rawPhotos []map[string]interface{}
 			BeforeEach(func() {
-				expected = []flickrapi.PhotoListEntry{
+				rawPhotos = []map[string]interface{}{
+					map[string]interface{}{"id": "123"},
+				}
+				photolist = []flickrapi.PhotoListEntry{
 					flickrapi.PhotoListEntry{
-						Id:       "123",
-						Owner:    "1234@N02",
-						Secret:   "asdf",
-						Server:   "1518",
-						Farm:     2,
-						Title:    "t1",
-						Ispublic: 1,
-						Isfriend: 0,
-						Isfamily: 0,
+						Data: rawPhotos[0],
 					},
 				}
-				flickrClient.GetPhotosReturns(expected, nil)
+				flickrClient.GetPhotosReturns(photolist, nil)
 			})
 
 			It("should save the photo list", func() {
 				Expect(fs.WriteJsonCallCount()).To(Equal(1))
 				name, payload := fs.WriteJsonArgsForCall(0)
 				Expect(name).To(Equal("photolist.json"))
-				Expect(payload).To(Equal(expected))
+				Expect(payload).To(Equal(rawPhotos))
 			})
 
 			Context("When the save fails", func() {
@@ -89,7 +85,7 @@ var _ = Describe("Downloader", func() {
 
 			Context("When the save succeeds", func() {
 				It("should return the photos", func() {
-					Expect(result).To(Equal(expected))
+					Expect(result).To(Equal(photolist))
 					Expect(err).To(BeNil())
 				})
 			})
@@ -109,10 +105,10 @@ var _ = Describe("Downloader", func() {
 		})
 
 		Context("When the request succeeds", func() {
-			var photo flickrapi.PhotoInfo
+			var photo map[string]interface{}
 
 			BeforeEach(func() {
-				photo = flickrapi.PhotoInfo{Id: "789"}
+				photo = map[string]interface{}{"id": "789"}
 				flickrClient.GetPhotoInfoReturns(photo, nil)
 			})
 

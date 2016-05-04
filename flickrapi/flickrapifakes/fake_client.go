@@ -8,15 +8,15 @@ import (
 )
 
 type FakeClient struct {
-	GetStub        func(method string, params map[string]string, payload flickrapi.FlickrPayload) error
+	GetStub        func(method string, params map[string]string) (map[string]interface{}, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		method  string
-		params  map[string]string
-		payload flickrapi.FlickrPayload
+		method string
+		params map[string]string
 	}
 	getReturns struct {
-		result1 error
+		result1 map[string]interface{}
+		result2 error
 	}
 	GetUsernameStub        func() (string, error)
 	getUsernameMutex       sync.RWMutex
@@ -34,29 +34,28 @@ type FakeClient struct {
 		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}
-	GetPhotoInfoStub        func(photoId string) (flickrapi.PhotoInfo, error)
+	GetPhotoInfoStub        func(photoId string) (map[string]interface{}, error)
 	getPhotoInfoMutex       sync.RWMutex
 	getPhotoInfoArgsForCall []struct {
 		photoId string
 	}
 	getPhotoInfoReturns struct {
-		result1 flickrapi.PhotoInfo
+		result1 map[string]interface{}
 		result2 error
 	}
 }
 
-func (fake *FakeClient) Get(method string, params map[string]string, payload flickrapi.FlickrPayload) error {
+func (fake *FakeClient) Get(method string, params map[string]string) (map[string]interface{}, error) {
 	fake.getMutex.Lock()
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		method  string
-		params  map[string]string
-		payload flickrapi.FlickrPayload
-	}{method, params, payload})
+		method string
+		params map[string]string
+	}{method, params})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(method, params, payload)
+		return fake.GetStub(method, params)
 	} else {
-		return fake.getReturns.result1
+		return fake.getReturns.result1, fake.getReturns.result2
 	}
 }
 
@@ -66,17 +65,18 @@ func (fake *FakeClient) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeClient) GetArgsForCall(i int) (string, map[string]string, flickrapi.FlickrPayload) {
+func (fake *FakeClient) GetArgsForCall(i int) (string, map[string]string) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	return fake.getArgsForCall[i].method, fake.getArgsForCall[i].params, fake.getArgsForCall[i].payload
+	return fake.getArgsForCall[i].method, fake.getArgsForCall[i].params
 }
 
-func (fake *FakeClient) GetReturns(result1 error) {
+func (fake *FakeClient) GetReturns(result1 map[string]interface{}, result2 error) {
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 error
-	}{result1}
+		result1 map[string]interface{}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeClient) GetUsername() (string, error) {
@@ -137,7 +137,7 @@ func (fake *FakeClient) GetPhotosReturns(result1 []flickrapi.PhotoListEntry, res
 	}{result1, result2}
 }
 
-func (fake *FakeClient) GetPhotoInfo(photoId string) (flickrapi.PhotoInfo, error) {
+func (fake *FakeClient) GetPhotoInfo(photoId string) (map[string]interface{}, error) {
 	fake.getPhotoInfoMutex.Lock()
 	fake.getPhotoInfoArgsForCall = append(fake.getPhotoInfoArgsForCall, struct {
 		photoId string
@@ -162,10 +162,10 @@ func (fake *FakeClient) GetPhotoInfoArgsForCall(i int) string {
 	return fake.getPhotoInfoArgsForCall[i].photoId
 }
 
-func (fake *FakeClient) GetPhotoInfoReturns(result1 flickrapi.PhotoInfo, result2 error) {
+func (fake *FakeClient) GetPhotoInfoReturns(result1 map[string]interface{}, result2 error) {
 	fake.GetPhotoInfoStub = nil
 	fake.getPhotoInfoReturns = struct {
-		result1 flickrapi.PhotoInfo
+		result1 map[string]interface{}
 		result2 error
 	}{result1, result2}
 }

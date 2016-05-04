@@ -26,12 +26,22 @@ func (d *downloader) DownloadPhotolist(client flickrapi.Client,
 		return nil, err
 	}
 
-	err = fs.WriteJson("photolist.json", photos)
+	err = savePhotolist(fs, photos)
 	if err != nil {
 		return nil, err
 	}
 
 	return photos, nil
+}
+
+func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error {
+	toSave := make([]map[string]interface{}, len(photos))
+
+	for i, p := range photos {
+		toSave[i] = p.Data
+	}
+
+	return fs.WriteJson("photolist.json", toSave)
 }
 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
