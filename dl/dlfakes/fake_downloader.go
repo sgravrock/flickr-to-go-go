@@ -20,6 +20,16 @@ type FakeDownloader struct {
 		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}
+	DownloadPhotoInfoStub        func(flickr flickrapi.Client, fs storage.Storage, id string) error
+	downloadPhotoInfoMutex       sync.RWMutex
+	downloadPhotoInfoArgsForCall []struct {
+		flickr flickrapi.Client
+		fs     storage.Storage
+		id     string
+	}
+	downloadPhotoInfoReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeDownloader) DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
@@ -54,6 +64,40 @@ func (fake *FakeDownloader) DownloadPhotolistReturns(result1 []flickrapi.PhotoLi
 		result1 []flickrapi.PhotoListEntry
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeDownloader) DownloadPhotoInfo(flickr flickrapi.Client, fs storage.Storage, id string) error {
+	fake.downloadPhotoInfoMutex.Lock()
+	fake.downloadPhotoInfoArgsForCall = append(fake.downloadPhotoInfoArgsForCall, struct {
+		flickr flickrapi.Client
+		fs     storage.Storage
+		id     string
+	}{flickr, fs, id})
+	fake.downloadPhotoInfoMutex.Unlock()
+	if fake.DownloadPhotoInfoStub != nil {
+		return fake.DownloadPhotoInfoStub(flickr, fs, id)
+	} else {
+		return fake.downloadPhotoInfoReturns.result1
+	}
+}
+
+func (fake *FakeDownloader) DownloadPhotoInfoCallCount() int {
+	fake.downloadPhotoInfoMutex.RLock()
+	defer fake.downloadPhotoInfoMutex.RUnlock()
+	return len(fake.downloadPhotoInfoArgsForCall)
+}
+
+func (fake *FakeDownloader) DownloadPhotoInfoArgsForCall(i int) (flickrapi.Client, storage.Storage, string) {
+	fake.downloadPhotoInfoMutex.RLock()
+	defer fake.downloadPhotoInfoMutex.RUnlock()
+	return fake.downloadPhotoInfoArgsForCall[i].flickr, fake.downloadPhotoInfoArgsForCall[i].fs, fake.downloadPhotoInfoArgsForCall[i].id
+}
+
+func (fake *FakeDownloader) DownloadPhotoInfoReturns(result1 error) {
+	fake.DownloadPhotoInfoStub = nil
+	fake.downloadPhotoInfoReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ dl.Downloader = new(FakeDownloader)

@@ -8,6 +8,7 @@ import (
 	. "github.com/sgravrock/flickr-to-go-go/app"
 	"github.com/sgravrock/flickr-to-go-go/auth/authfakes"
 	"github.com/sgravrock/flickr-to-go-go/dl/dlfakes"
+	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 
 	. "github.com/onsi/ginkgo"
@@ -74,6 +75,38 @@ var _ = Describe("App", func() {
 		It("prints an error and fails", func() {
 			Expect(retval).NotTo(Equal(0))
 			Expect(stderr.String()).To(ContainSubstring("Error downloading photo list: nope"))
+		})
+	})
+
+	Context("When the photo list download succeeds", func() {
+		var photos []flickrapi.PhotoListEntry
+
+		BeforeEach(func() {
+			photos = []flickrapi.PhotoListEntry{
+				flickrapi.PhotoListEntry{Id: "123"},
+				flickrapi.PhotoListEntry{Id: "456"},
+			}
+			downloader.DownloadPhotolistReturns(photos, nil)
+		})
+
+		It("downloads the photos' info", func() {
+			Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
+			_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+			Expect(id).To(Equal("123"))
+			_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
+			Expect(id).To(Equal("456"))
+		})
+
+		Context("When a photo info download fails", func() {
+			BeforeEach(func() {
+				downloader.DownloadPhotoInfoReturns(errors.New("nope"))
+			})
+
+			It("prints an error and fails", func() {
+				Expect(retval).NotTo(Equal(0))
+				Expect(stderr.String()).To(ContainSubstring(
+					"Error downloading info for 123: nope"))
+			})
 		})
 	})
 })

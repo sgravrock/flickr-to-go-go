@@ -16,6 +16,7 @@ type Client interface {
 	// Higher-level interfaces for specific requests
 	GetUsername() (string, error)
 	GetPhotos(pageSize int) ([]PhotoListEntry, error)
+	GetPhotoInfo(photoId string) (PhotoInfo, error)
 }
 
 func NewClient(authenticatedHttpClient *http.Client, url string) Client {
@@ -123,4 +124,11 @@ func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (c flickrClient) GetPhotoInfo(photoId string) (PhotoInfo, error) {
+	payload := PhotoInfoPayload{}
+	params := map[string]string{"photo_id": photoId}
+	err := c.Get("flickr.photos.getInfo", params, &payload)
+	return payload.Photo, err
 }

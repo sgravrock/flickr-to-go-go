@@ -95,4 +95,33 @@ var _ = Describe("Downloader", func() {
 			})
 		})
 	})
+
+	Describe("DownloadPhotoInfo", func() {
+		var err error
+
+		JustBeforeEach(func() {
+			err = subject.DownloadPhotoInfo(flickrClient, fs, "789")
+		})
+
+		It("requests the photo info", func() {
+			Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(1))
+			Expect(flickrClient.GetPhotoInfoArgsForCall(0)).To(Equal("789"))
+		})
+
+		Context("When the request succeeds", func() {
+			var photo flickrapi.PhotoInfo
+
+			BeforeEach(func() {
+				photo = flickrapi.PhotoInfo{Id: "789"}
+				flickrClient.GetPhotoInfoReturns(photo, nil)
+			})
+
+			It("saves the photo", func() {
+				Expect(fs.WriteJsonCallCount()).To(Equal(1))
+				name, payload := fs.WriteJsonArgsForCall(0)
+				Expect(name).To(Equal("photo-info/789.json"))
+				Expect(payload).To(Equal(photo))
+			})
+		})
+	})
 })
