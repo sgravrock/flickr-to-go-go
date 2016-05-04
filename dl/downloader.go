@@ -1,9 +1,12 @@
 package dl
 
-import "github.com/sgravrock/flickr-to-go-go/flickrapi"
+import (
+	"github.com/sgravrock/flickr-to-go-go/flickrapi"
+	"github.com/sgravrock/flickr-to-go-go/storage"
+)
 
 type Downloader interface {
-	DownloadPhotolist(flickr flickrapi.Client) ([]flickrapi.PhotoInfo, error)
+	DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoInfo, error)
 }
 
 func NewDownloader() Downloader {
@@ -12,6 +15,18 @@ func NewDownloader() Downloader {
 
 type downloader struct{}
 
-func (d *downloader) DownloadPhotolist(client flickrapi.Client) ([]flickrapi.PhotoInfo, error) {
-	return client.GetPhotos(500)
+func (d *downloader) DownloadPhotolist(client flickrapi.Client,
+	fs storage.Storage) ([]flickrapi.PhotoInfo, error) {
+
+	photos, err := client.GetPhotos(500)
+	if err != nil {
+		return nil, err
+	}
+
+	err = fs.WriteJson("photolist.json", photos)
+	if err != nil {
+		return nil, err
+	}
+
+	return photos, nil
 }

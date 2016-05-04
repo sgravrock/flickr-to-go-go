@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path"
@@ -10,6 +11,7 @@ type Storage interface {
 	EnsureRoot() error
 	Create(name string) (File, error)
 	Open(name string) (File, error)
+	WriteJson(name string, payload interface{}) error
 }
 
 type File interface {
@@ -39,4 +41,18 @@ func (fs FileStorage) Create(name string) (File, error) {
 
 func (fs FileStorage) Open(name string) (File, error) {
 	return os.Open(path.Join(fs.Rootdir, name))
+}
+
+func (fs FileStorage) WriteJson(name string, payload interface{}) error {
+	data, err := json.MarshalIndent(payload, "", "\t")
+	if err != nil {
+		return err
+	}
+	f, err := fs.Create(name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	return err
 }

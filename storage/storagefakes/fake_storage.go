@@ -32,6 +32,15 @@ type FakeStorage struct {
 		result1 storage.File
 		result2 error
 	}
+	WriteJsonStub        func(name string, payload interface{}) error
+	writeJsonMutex       sync.RWMutex
+	writeJsonArgsForCall []struct {
+		name    string
+		payload interface{}
+	}
+	writeJsonReturns struct {
+		result1 error
+	}
 }
 
 func (fake *FakeStorage) EnsureRoot() error {
@@ -122,6 +131,39 @@ func (fake *FakeStorage) OpenReturns(result1 storage.File, result2 error) {
 		result1 storage.File
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeStorage) WriteJson(name string, payload interface{}) error {
+	fake.writeJsonMutex.Lock()
+	fake.writeJsonArgsForCall = append(fake.writeJsonArgsForCall, struct {
+		name    string
+		payload interface{}
+	}{name, payload})
+	fake.writeJsonMutex.Unlock()
+	if fake.WriteJsonStub != nil {
+		return fake.WriteJsonStub(name, payload)
+	} else {
+		return fake.writeJsonReturns.result1
+	}
+}
+
+func (fake *FakeStorage) WriteJsonCallCount() int {
+	fake.writeJsonMutex.RLock()
+	defer fake.writeJsonMutex.RUnlock()
+	return len(fake.writeJsonArgsForCall)
+}
+
+func (fake *FakeStorage) WriteJsonArgsForCall(i int) (string, interface{}) {
+	fake.writeJsonMutex.RLock()
+	defer fake.writeJsonMutex.RUnlock()
+	return fake.writeJsonArgsForCall[i].name, fake.writeJsonArgsForCall[i].payload
+}
+
+func (fake *FakeStorage) WriteJsonReturns(result1 error) {
+	fake.WriteJsonStub = nil
+	fake.writeJsonReturns = struct {
+		result1 error
+	}{result1}
 }
 
 var _ storage.Storage = new(FakeStorage)

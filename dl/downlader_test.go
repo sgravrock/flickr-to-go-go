@@ -6,6 +6,7 @@ import (
 	. "github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi/flickrapifakes"
+	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,9 +15,11 @@ import (
 var _ = Describe("Downloader", func() {
 	var subject Downloader
 	var flickrClient *flickrapifakes.FakeClient
+	var fs *storagefakes.FakeStorage
 
 	BeforeEach(func() {
 		flickrClient = new(flickrapifakes.FakeClient)
+		fs = new(storagefakes.FakeStorage)
 		subject = NewDownloader()
 	})
 
@@ -25,7 +28,7 @@ var _ = Describe("Downloader", func() {
 		var result []flickrapi.PhotoInfo
 
 		JustBeforeEach(func() {
-			result, err = subject.DownloadPhotolist(flickrClient)
+			result, err = subject.DownloadPhotolist(flickrClient, fs)
 		})
 
 		It("should request the photo list", func() {
@@ -41,11 +44,14 @@ var _ = Describe("Downloader", func() {
 				Expect(result).To(BeNil())
 				Expect(err).NotTo(BeNil())
 			})
+
+			It("should not save anything", func() {
+				Expect(fs.WriteJsonCallCount()).To(Equal(0))
+			})
 		})
 
 		Context("When the photo list fetch succeeds", func() {
 			var expected []flickrapi.PhotoInfo
-			// TODO: Perform the save first
 			BeforeEach(func() {
 				expected = []flickrapi.PhotoInfo{
 					flickrapi.PhotoInfo{
@@ -63,9 +69,29 @@ var _ = Describe("Downloader", func() {
 				flickrClient.GetPhotosReturns(expected, nil)
 			})
 
-			It("should return the photos", func() {
-				Expect(result).To(Equal(expected))
-				Expect(err).To(BeNil())
+			It("should save the photo list", func() {
+				Expect(fs.WriteJsonCallCount()).To(Equal(1))
+				name, payload := fs.WriteJsonArgsForCall(0)
+				Expect(name).To(Equal("photolist.json"))
+				Expect(payload).To(Equal(expected))
+			})
+
+			Context("When the save fails", func() {
+				BeforeEach(func() {
+					fs.WriteJsonReturns(errors.New("nope!"))
+				})
+
+				It("should fail", func() {
+					Expect(result).To(BeNil())
+					Expect(err).NotTo(BeNil())
+				})
+			})
+
+			Context("When the save succeeds", func() {
+				It("should return the photos", func() {
+					Expect(result).To(Equal(expected))
+					Expect(err).To(BeNil())
+				})
 			})
 		})
 	})
