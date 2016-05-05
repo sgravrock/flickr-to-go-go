@@ -104,6 +104,17 @@ var _ = Describe("Downloader", func() {
 			Expect(flickrClient.GetPhotoInfoArgsForCall(0)).To(Equal("789"))
 		})
 
+		Context("When the request fails", func() {
+			BeforeEach(func() {
+				flickrClient.GetPhotoInfoReturns(nil, errors.New("nope"))
+			})
+
+			It("fails", func() {
+				Expect(err).NotTo(BeNil())
+				Expect(fs.WriteJsonCallCount()).To(Equal(0))
+			})
+		})
+
 		Context("When the request succeeds", func() {
 			var photo map[string]interface{}
 
@@ -117,6 +128,16 @@ var _ = Describe("Downloader", func() {
 				name, payload := fs.WriteJsonArgsForCall(0)
 				Expect(name).To(Equal("photo-info/789.json"))
 				Expect(payload).To(Equal(photo))
+			})
+
+			Context("When the save fails", func() {
+				BeforeEach(func() {
+					fs.WriteJsonReturns(errors.New("nope"))
+				})
+
+				It("fails", func() {
+					Expect(err).NotTo(BeNil())
+				})
 			})
 		})
 	})

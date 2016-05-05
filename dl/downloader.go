@@ -47,9 +47,11 @@ func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
 	fs storage.Storage, id string) error {
 
-	// TODO: error handling, and tests for it
-	info, _ := flickr.GetPhotoInfo(id)
+	info, err := flickr.GetPhotoInfo(id)
+	if err != nil {
+		return err
+	}
+
 	path := fmt.Sprintf("photo-info/%s.json", id)
-	fs.WriteJson(path, info)
-	return nil
+	return fs.WriteJson(path, info)
 }
