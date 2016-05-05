@@ -14,3 +14,7 @@ func (e *PhotoListEntry) Id() (string, error) {
 
 	return id, nil
 }
+
+func (e *PhotoListEntry) OriginalUrl() (string, error) {
+	return requireString(e.Data, []string{"url_o"})
+}

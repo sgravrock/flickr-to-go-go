@@ -2,6 +2,7 @@
 package dlfakes
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/sgravrock/flickr-to-go-go/dl"
@@ -28,6 +29,16 @@ type FakeDownloader struct {
 		id     string
 	}
 	downloadPhotoInfoReturns struct {
+		result1 error
+	}
+	DownloadOriginalStub        func(httpClient *http.Client, fs storage.Storage, photo flickrapi.PhotoListEntry) error
+	downloadOriginalMutex       sync.RWMutex
+	downloadOriginalArgsForCall []struct {
+		httpClient *http.Client
+		fs         storage.Storage
+		photo      flickrapi.PhotoListEntry
+	}
+	downloadOriginalReturns struct {
 		result1 error
 	}
 }
@@ -96,6 +107,40 @@ func (fake *FakeDownloader) DownloadPhotoInfoArgsForCall(i int) (flickrapi.Clien
 func (fake *FakeDownloader) DownloadPhotoInfoReturns(result1 error) {
 	fake.DownloadPhotoInfoStub = nil
 	fake.downloadPhotoInfoReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDownloader) DownloadOriginal(httpClient *http.Client, fs storage.Storage, photo flickrapi.PhotoListEntry) error {
+	fake.downloadOriginalMutex.Lock()
+	fake.downloadOriginalArgsForCall = append(fake.downloadOriginalArgsForCall, struct {
+		httpClient *http.Client
+		fs         storage.Storage
+		photo      flickrapi.PhotoListEntry
+	}{httpClient, fs, photo})
+	fake.downloadOriginalMutex.Unlock()
+	if fake.DownloadOriginalStub != nil {
+		return fake.DownloadOriginalStub(httpClient, fs, photo)
+	} else {
+		return fake.downloadOriginalReturns.result1
+	}
+}
+
+func (fake *FakeDownloader) DownloadOriginalCallCount() int {
+	fake.downloadOriginalMutex.RLock()
+	defer fake.downloadOriginalMutex.RUnlock()
+	return len(fake.downloadOriginalArgsForCall)
+}
+
+func (fake *FakeDownloader) DownloadOriginalArgsForCall(i int) (*http.Client, storage.Storage, flickrapi.PhotoListEntry) {
+	fake.downloadOriginalMutex.RLock()
+	defer fake.downloadOriginalMutex.RUnlock()
+	return fake.downloadOriginalArgsForCall[i].httpClient, fake.downloadOriginalArgsForCall[i].fs, fake.downloadOriginalArgsForCall[i].photo
+}
+
+func (fake *FakeDownloader) DownloadOriginalReturns(result1 error) {
+	fake.DownloadOriginalStub = nil
+	fake.downloadOriginalReturns = struct {
 		result1 error
 	}{result1}
 }

@@ -108,5 +108,25 @@ var _ = Describe("App", func() {
 					"Error downloading info for 123: nope"))
 			})
 		})
+
+		It("downloads the original photos", func() {
+			Expect(downloader.DownloadOriginalCallCount()).To(Equal(2))
+			_, _, p1 := downloader.DownloadOriginalArgsForCall(0)
+			Expect(p1.Id()).To(Equal("123"))
+			_, _, p2 := downloader.DownloadOriginalArgsForCall(1)
+			Expect(p2.Id()).To(Equal("456"))
+		})
+
+		Context("When an original fails to download", func() {
+			BeforeEach(func() {
+				downloader.DownloadOriginalReturns(errors.New("nope"))
+			})
+
+			It("prints an error and fails", func() {
+				Expect(retval).NotTo(Equal(0))
+				Expect(stderr.String()).To(ContainSubstring(
+					"Error downloading original for 123: nope"))
+			})
+		})
 	})
 })

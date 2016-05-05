@@ -2,6 +2,8 @@ package dl_test
 
 import (
 	"errors"
+	"fmt"
+	"net/http"
 
 	. "github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
@@ -10,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Downloader", func() {
@@ -123,7 +126,7 @@ var _ = Describe("Downloader", func() {
 				flickrClient.GetPhotoInfoReturns(photo, nil)
 			})
 
-			It("saves the photo", func() {
+			It("saves the photo info", func() {
 				Expect(fs.WriteJsonCallCount()).To(Equal(1))
 				name, payload := fs.WriteJsonArgsForCall(0)
 				Expect(name).To(Equal("photo-info/789.json"))
@@ -133,6 +136,88 @@ var _ = Describe("Downloader", func() {
 			Context("When the save fails", func() {
 				BeforeEach(func() {
 					fs.WriteJsonReturns(errors.New("nope"))
+				})
+
+				It("fails", func() {
+					Expect(err).NotTo(BeNil())
+				})
+			})
+		})
+	})
+
+	Describe("DownloadOriginal", func() {
+		var photo flickrapi.PhotoListEntry
+		var ts *ghttp.Server
+		var path string
+		var err error
+
+		BeforeEach(func() {
+			ts = ghttp.NewServer()
+			path = "/path/some-number_o.jpg"
+			photo = flickrapi.PhotoListEntry{
+				Data: map[string]interface{}{
+					"id":    "12345",
+					"url_o": fmt.Sprintf("%s%s", ts.URL(), path),
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			err = subject.DownloadOriginal(new(http.Client), fs, photo)
+		})
+
+		Context("When the request returns a non-200 response", func() {
+			BeforeEach(func() {
+				ts.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", path, ""),
+						ghttp.RespondWith(403, "Not yours"),
+					),
+				)
+			})
+
+			It("fails", func() {
+				Expect(err).NotTo(BeNil())
+			})
+		})
+
+		Context("When the request succeeds", func() {
+			var contents []byte
+			var file *storagefakes.FakeFile
+
+			BeforeEach(func() {
+				contents = []byte("\xff\xd8\xff\xe1\x16&Exif\x00\x00II*\x00\x08\x00\x00\x00")
+				ts.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", path, ""),
+						ghttp.RespondWith(200, contents),
+					),
+				)
+				file = new(storagefakes.FakeFile)
+				fs.CreateReturns(file, nil)
+			})
+
+			It("saves the photo", func() {
+				Expect(fs.CreateCallCount()).To(Equal(1))
+				Expect(fs.CreateArgsForCall(0)).To(Equal("originals/12345.jpg"))
+				Expect(file.WriteCallCount()).To(Equal(1))
+				Expect(file.WriteArgsForCall(0)).To(Equal(contents))
+				Expect(file.CloseCallCount()).To(Equal(1))
+			})
+
+			Context("When the open fails", func() {
+				BeforeEach(func() {
+					fs.CreateReturns(nil, errors.New("nope"))
+				})
+
+				It("fails", func() {
+					Expect(err).NotTo(BeNil())
+				})
+			})
+
+			Context("When the write fails", func() {
+				BeforeEach(func() {
+					file.WriteReturns(-1, errors.New("nope"))
 				})
 
 				It("fails", func() {

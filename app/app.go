@@ -51,6 +51,14 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 				id, err.Error())
 			return 1
 		}
+
+		fmt.Fprintf(stdout, "Downloading original of photo %s\n", id)
+		err = downloader.DownloadOriginal(httpClient, fileStore, p)
+		if err != nil {
+			fmt.Fprintf(stderr, "Error downloading original for %s: %s\n",
+				id, err.Error())
+			return 1
+		}
 	}
 
 	return 0

@@ -159,7 +159,7 @@ var _ = Describe("flickrapi.Client", func() {
 				"owner":"1234@N02","secret":"qwer","server":"1521",
 				"farm":2,"title":"t2","ispublic":0,"isfriend":1,"isfamily":0}
 				]},"stat":"ok"}`}
-				setupPhotlistPages(ts, pages)
+				setupPhotolistPages(ts, pages)
 			})
 
 			It("should populate the payload", func() {
@@ -210,7 +210,7 @@ var _ = Describe("flickrapi.Client", func() {
 							"ispublic":0,"isfriend":0,"isfamily":1}
 							]},"stat":"ok"}`,
 				}
-				setupPhotlistPages(ts, pages)
+				setupPhotolistPages(ts, pages)
 			})
 
 			It("should return the list of photos", func() {
