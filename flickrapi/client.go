@@ -129,6 +129,7 @@ func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
 	result := []PhotoListEntry{}
 	params := map[string]string{
 		"user_id":  "me",
+		"extras":   "url_o",
 		"per_page": strconv.Itoa(pageSize),
 	}
 	err := c.getPaged("flickr.people.getPhotos", params, "photos",

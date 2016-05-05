@@ -24,9 +24,9 @@ func setupTestLoginSuccess(ts *ghttp.Server) {
 	)
 }
 
-func setupPhotlistPages(ts *ghttp.Server, pages []string) {
+func setupPhotolistPages(ts *ghttp.Server, pages []string) {
 	for i := 0; i < len(pages); i++ {
-		params := fmt.Sprintf("method=flickr.people.getPhotos&user_id=me&page=%d&per_page=2&format=json&nojsoncallback=1", i+1)
+		params := fmt.Sprintf("method=flickr.people.getPhotos&user_id=me&page=%d&per_page=2&extras=url_o&format=json&nojsoncallback=1", i+1)
 		ts.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET",
@@ -179,7 +179,7 @@ var _ = Describe("flickrapi.Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET",
 							"/services/rest/",
-							"method=flickr.people.getPhotos&user_id=me&page=1&per_page=2&format=json&nojsoncallback=1"),
+							"method=flickr.people.getPhotos&user_id=me&page=1&per_page=2&extras=url_o&format=json&nojsoncallback=1"),
 						ghttp.RespondWith(500, "oops"),
 					),
 				)
