@@ -36,7 +36,12 @@ func (fs FileStorage) EnsureRoot() error {
 }
 
 func (fs FileStorage) Create(name string) (File, error) {
-	return os.Create(path.Join(fs.Rootdir, name))
+	p := path.Join(fs.Rootdir, name)
+	err := ensureParentDir(p)
+	if err != nil {
+		return nil, err
+	}
+	return os.Create(p)
 }
 
 func (fs FileStorage) Open(name string) (File, error) {
@@ -55,4 +60,9 @@ func (fs FileStorage) WriteJson(name string, payload interface{}) error {
 	defer f.Close()
 	_, err = f.Write(data)
 	return err
+}
+
+func ensureParentDir(p string) error {
+	parent := path.Dir(p)
+	return os.MkdirAll(parent, 0777)
 }
