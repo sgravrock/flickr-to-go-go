@@ -9,6 +9,7 @@ import (
 
 type Storage interface {
 	EnsureRoot() error
+	Exists(string) bool
 	Create(name string) (File, error)
 	Open(name string) (File, error)
 	WriteJson(name string, payload interface{}) error
@@ -33,6 +34,11 @@ func NewFileStorage(rootDir string) Storage {
 func (fs FileStorage) EnsureRoot() error {
 	_, err := os.Stat(fs.Rootdir)
 	return err
+}
+
+func (fs FileStorage) Exists(name string) bool {
+	_, err := os.Stat(path.Join(fs.Rootdir, name))
+	return err == nil
 }
 
 func (fs FileStorage) Create(name string) (File, error) {

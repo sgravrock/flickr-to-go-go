@@ -14,6 +14,14 @@ type FakeStorage struct {
 	ensureRootReturns     struct {
 		result1 error
 	}
+	ExistsStub        func(string) bool
+	existsMutex       sync.RWMutex
+	existsArgsForCall []struct {
+		arg1 string
+	}
+	existsReturns struct {
+		result1 bool
+	}
 	CreateStub        func(name string) (storage.File, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
@@ -64,6 +72,38 @@ func (fake *FakeStorage) EnsureRootReturns(result1 error) {
 	fake.EnsureRootStub = nil
 	fake.ensureRootReturns = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorage) Exists(arg1 string) bool {
+	fake.existsMutex.Lock()
+	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.existsMutex.Unlock()
+	if fake.ExistsStub != nil {
+		return fake.ExistsStub(arg1)
+	} else {
+		return fake.existsReturns.result1
+	}
+}
+
+func (fake *FakeStorage) ExistsCallCount() int {
+	fake.existsMutex.RLock()
+	defer fake.existsMutex.RUnlock()
+	return len(fake.existsArgsForCall)
+}
+
+func (fake *FakeStorage) ExistsArgsForCall(i int) string {
+	fake.existsMutex.RLock()
+	defer fake.existsMutex.RUnlock()
+	return fake.existsArgsForCall[i].arg1
+}
+
+func (fake *FakeStorage) ExistsReturns(result1 bool) {
+	fake.ExistsStub = nil
+	fake.existsReturns = struct {
+		result1 bool
 	}{result1}
 }
 

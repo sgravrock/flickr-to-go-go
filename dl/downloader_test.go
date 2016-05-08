@@ -102,6 +102,19 @@ var _ = Describe("Downloader", func() {
 			err = subject.DownloadPhotoInfo(flickrClient, fs, "789")
 		})
 
+		Context("When the photo info already exists", func() {
+			BeforeEach(func() {
+				fs.ExistsStub = func(name string) bool {
+					return name == "photo-info/789.json"
+				}
+			})
+
+			It("does not download anything", func() {
+				Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(0))
+				Expect(fs.WriteJsonCallCount()).To(Equal(0))
+			})
+		})
+
 		It("requests the photo info", func() {
 			Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(1))
 			Expect(flickrClient.GetPhotoInfoArgsForCall(0)).To(Equal("789"))
@@ -164,6 +177,18 @@ var _ = Describe("Downloader", func() {
 
 		JustBeforeEach(func() {
 			err = subject.DownloadOriginal(new(http.Client), fs, photo)
+		})
+
+		Context("When the photo already exists", func() {
+			BeforeEach(func() {
+				fs.ExistsStub = func(name string) bool {
+					return name == "originals/12345.jpg"
+				}
+			})
+
+			It("does not download anything", func() {
+				Expect(fs.CreateCallCount()).To(Equal(0))
+			})
 		})
 
 		Context("When the request returns a non-200 response", func() {

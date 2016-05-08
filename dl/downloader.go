@@ -52,12 +52,16 @@ func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
 	fs storage.Storage, id string) error {
 
+	path := fmt.Sprintf("photo-info/%s.json", id)
+	if fs.Exists(path) {
+		return nil
+	}
+
 	info, err := flickr.GetPhotoInfo(id)
 	if err != nil {
 		return err
 	}
 
-	path := fmt.Sprintf("photo-info/%s.json", id)
 	return fs.WriteJson(path, info)
 }
 
@@ -66,6 +70,11 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 	id, err := photo.Id()
 	if err != nil {
 		return err
+	}
+
+	path := fmt.Sprintf("originals/%s.jpg", id)
+	if fs.Exists(path) {
+		return nil
 	}
 
 	url, err := photo.OriginalUrl()
@@ -89,7 +98,7 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 		return err
 	}
 
-	f, err := fs.Create(fmt.Sprintf("originals/%s.jpg", id))
+	f, err := fs.Create(path)
 	if err != nil {
 		return err
 	}
