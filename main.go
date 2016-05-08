@@ -16,7 +16,7 @@ func main() {
 	savecreds, dest := parseArgs()
 	filestore := storage.NewFileStorage(dest)
 	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
-	downloader := dl.NewDownloader()
+	downloader := dl.NewDownloader(os.Stdout)
 	exitcode := app.Run("https://api.flickr.com", savecreds, authenticator,
 		downloader, filestore, os.Stdout, os.Stderr)
 	os.Exit(exitcode)

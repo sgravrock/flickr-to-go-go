@@ -3,6 +3,7 @@ package dl
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -17,15 +18,18 @@ type Downloader interface {
 		photo flickrapi.PhotoListEntry) error
 }
 
-func NewDownloader() Downloader {
-	return &downloader{}
+func NewDownloader(stdout io.Writer) Downloader {
+	return &downloader{stdout}
 }
 
-type downloader struct{}
+type downloader struct {
+	stdout io.Writer
+}
 
 func (d *downloader) DownloadPhotolist(client flickrapi.Client,
 	fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
 
+	fmt.Fprintln(d.stdout, "Downloading photo list")
 	photos, err := client.GetPhotos(500)
 	if err != nil {
 		return nil, err
@@ -52,6 +56,7 @@ func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
 	fs storage.Storage, id string) error {
 
+	fmt.Fprintf(dl.stdout, "Downloading info for photo %s\n", id)
 	path := fmt.Sprintf("photo-info/%s.json", id)
 	if fs.Exists(path) {
 		return nil
@@ -72,6 +77,7 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 		return err
 	}
 
+	fmt.Fprintf(dl.stdout, "Downloading original of photo %s\n", id)
 	path := fmt.Sprintf("originals/%s.jpg", id)
 	if fs.Exists(path) {
 		return nil

@@ -1,6 +1,7 @@
 package dl_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,11 +20,13 @@ var _ = Describe("Downloader", func() {
 	var subject Downloader
 	var flickrClient *flickrapifakes.FakeClient
 	var fs *storagefakes.FakeStorage
+	var stdout *bytes.Buffer
 
 	BeforeEach(func() {
 		flickrClient = new(flickrapifakes.FakeClient)
 		fs = new(storagefakes.FakeStorage)
-		subject = NewDownloader()
+		stdout = new(bytes.Buffer)
+		subject = NewDownloader(stdout)
 	})
 
 	Describe("DownloadPhotolist", func() {

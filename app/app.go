@@ -28,7 +28,6 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 	}
 
 	flickrClient := flickrapi.NewClient(httpClient, baseUrl)
-	fmt.Fprintln(stdout, "Downloading photo list")
 	photos, err := downloader.DownloadPhotolist(flickrClient, fileStore)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error downloading photo list: %s\n", err.Error())
@@ -44,7 +43,6 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 			return 1
 		}
 
-		fmt.Fprintf(stdout, "Downloading info for photo %s\n", id)
 		err = downloader.DownloadPhotoInfo(flickrClient, fileStore, id)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error downloading info for %s: %s\n",
@@ -52,7 +50,6 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 			return 1
 		}
 
-		fmt.Fprintf(stdout, "Downloading original of photo %s\n", id)
 		err = downloader.DownloadOriginal(httpClient, fileStore, p)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error downloading original for %s: %s\n",
