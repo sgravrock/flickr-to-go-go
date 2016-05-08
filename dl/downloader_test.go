@@ -116,6 +116,10 @@ var _ = Describe("Downloader", func() {
 				Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(0))
 				Expect(fs.WriteJsonCallCount()).To(Equal(0))
 			})
+
+			It("does not log anything", func() {
+				Expect(stdout.Len()).To(Equal(0))
+			})
 		})
 
 		It("requests the photo info", func() {
@@ -191,6 +195,10 @@ var _ = Describe("Downloader", func() {
 
 			It("does not download anything", func() {
 				Expect(fs.CreateCallCount()).To(Equal(0))
+			})
+
+			It("does not log anything", func() {
+				Expect(stdout.Len()).To(Equal(0))
 			})
 		})
 

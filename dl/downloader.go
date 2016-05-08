@@ -56,12 +56,12 @@ func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
 	fs storage.Storage, id string) error {
 
-	fmt.Fprintf(dl.stdout, "Downloading info for photo %s\n", id)
 	path := fmt.Sprintf("photo-info/%s.json", id)
 	if fs.Exists(path) {
 		return nil
 	}
 
+	fmt.Fprintf(dl.stdout, "Downloading info for photo %s\n", id)
 	info, err := flickr.GetPhotoInfo(id)
 	if err != nil {
 		return err
@@ -77,12 +77,12 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 		return err
 	}
 
-	fmt.Fprintf(dl.stdout, "Downloading original of photo %s\n", id)
 	path := fmt.Sprintf("originals/%s.jpg", id)
 	if fs.Exists(path) {
 		return nil
 	}
 
+	fmt.Fprintf(dl.stdout, "Downloading original of photo %s\n", id)
 	url, err := photo.OriginalUrl()
 	if err != nil {
 		return err
