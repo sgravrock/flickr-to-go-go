@@ -3,7 +3,9 @@ package app_test
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	. "github.com/sgravrock/flickr-to-go-go/app"
@@ -12,7 +14,6 @@ import (
 	"github.com/sgravrock/flickr-to-go-go/dl/dlfakes"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
-	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,19 +24,22 @@ var _ = Describe("App", func() {
 	var (
 		authenticator *authfakes.FakeAuthenticator
 		ts            *ghttp.Server
-		fs            *storagefakes.FakeStorage
+		fs            storage.Storage
+		dir           string
 		downloader    *dlfakes.FakeDownloader
 		clock         *clockfakes.FakeClock
 		stdout        *bytes.Buffer
 		stderr        *bytes.Buffer
 		retval        int
-		timestampFile *storagefakes.FakeFile
 	)
 
 	BeforeEach(func() {
 		authenticator = new(authfakes.FakeAuthenticator)
 		authenticator.AuthenticateReturns(new(http.Client), nil)
-		fs = new(storagefakes.FakeStorage)
+		d, err := ioutil.TempDir("", "storage_test")
+		dir = d
+		Expect(err).To(BeNil())
+		fs = storage.NewFileStorage(dir)
 		downloader = new(dlfakes.FakeDownloader)
 		clock = new(clockfakes.FakeClock)
 		stdout = new(bytes.Buffer)
@@ -47,13 +51,6 @@ var _ = Describe("App", func() {
 				ghttp.RespondWith(http.StatusNotFound, "nope"),
 			),
 		)
-		timestampFile = new(storagefakes.FakeFile)
-		fs.CreateStub = func(name string) (storage.File, error) {
-			if name == "timestamp" {
-				return timestampFile, nil
-			}
-			return nil, errors.New("Don't now how to make this file")
-		}
 	})
 
 	JustBeforeEach(func() {
@@ -63,13 +60,14 @@ var _ = Describe("App", func() {
 
 	Context("When the destination directory doesn't exist", func() {
 		BeforeEach(func() {
-			fs.EnsureRootReturns(errors.New("stat foo: No such file or directory"))
+			err := os.Remove(dir)
+			Expect(err).To(BeNil())
 		})
 
 		It("prints an error and fails", func() {
 			Expect(retval).NotTo(Equal(0))
 			Expect(authenticator.AuthenticateCallCount()).To(Equal(0))
-			Expect(stderr.String()).To(ContainSubstring("foo: No such file or directory"))
+			Expect(stderr.String()).To(ContainSubstring("no such file or directory"))
 		})
 	})
 
@@ -154,10 +152,9 @@ var _ = Describe("App", func() {
 		})
 
 		It("writes a timestamp", func() {
-			Expect(fs.CreateCallCount()).To(Equal(1))
-			Expect(fs.CreateArgsForCall(0)).To(Equal("timestamp"))
-			Expect(timestampFile.WriteCallCount()).To(Equal(1))
-			Expect(timestampFile.WriteArgsForCall(0)).To(Equal([]byte("1257894000\n")))
+			contents, err := ioutil.ReadFile(dir + "/timestamp")
+			Expect(err).To(BeNil())
+			Expect(contents).To(Equal([]byte("1257894000\n")))
 		})
 	})
 
@@ -171,8 +168,9 @@ var _ = Describe("App", func() {
 		})
 
 		It("doesn't write a timestamp", func() {
-			Expect(clock.NowCallCount()).To(Equal(0))
-			Expect(fs.CreateCallCount()).To(Equal(0))
+			_, err := os.Stat(dir + "/timestamp")
+			_, ok := err.(*os.PathError)
+			Expect(ok).To(BeTrue())
 		})
 	})
 })
