@@ -5,14 +5,15 @@ import (
 	"io"
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
+	"github.com/sgravrock/flickr-to-go-go/clock"
 	"github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
 
 func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
-	downloader dl.Downloader, fileStore storage.Storage, stdout io.Writer,
-	stderr io.Writer) int {
+	downloader dl.Downloader, fileStore storage.Storage, clock clock.Clock,
+	stdout io.Writer, stderr io.Writer) int {
 
 	err := fileStore.EnsureRoot()
 	if err != nil {
@@ -56,7 +57,24 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 				id, err.Error())
 			return 1
 		}
+
+		err = writeTimestamp(clock, fileStore)
+		if err != nil {
+			fmt.Fprintf(stderr, "Error saving timestamp: %s\n", err.Error())
+			return 1
+		}
 	}
 
 	return 0
+}
+
+func writeTimestamp(clock clock.Clock, fs storage.Storage) error {
+	f, err := fs.Create("timestamp")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	s := fmt.Sprint(clock.Now().Unix()) + "\n"
+	f.Write([]byte(s))
+	return nil
 }

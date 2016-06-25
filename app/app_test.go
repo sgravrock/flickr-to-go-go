@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"net/http"
+	"time"
 
 	. "github.com/sgravrock/flickr-to-go-go/app"
 	"github.com/sgravrock/flickr-to-go-go/auth/authfakes"
+	"github.com/sgravrock/flickr-to-go-go/clock/clockfakes"
 	"github.com/sgravrock/flickr-to-go-go/dl/dlfakes"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
+	"github.com/sgravrock/flickr-to-go-go/storage"
 	"github.com/sgravrock/flickr-to-go-go/storage/storagefakes"
 
 	. "github.com/onsi/ginkgo"
@@ -22,9 +25,11 @@ var _ = Describe("App", func() {
 		ts            *ghttp.Server
 		fs            *storagefakes.FakeStorage
 		downloader    *dlfakes.FakeDownloader
+		clock         *clockfakes.FakeClock
 		stdout        *bytes.Buffer
 		stderr        *bytes.Buffer
 		retval        int
+		timestampFile *storagefakes.FakeFile
 	)
 
 	BeforeEach(func() {
@@ -32,6 +37,7 @@ var _ = Describe("App", func() {
 		authenticator.AuthenticateReturns(new(http.Client), nil)
 		fs = new(storagefakes.FakeStorage)
 		downloader = new(dlfakes.FakeDownloader)
+		clock = new(clockfakes.FakeClock)
 		stdout = new(bytes.Buffer)
 		stderr = new(bytes.Buffer)
 		ts = ghttp.NewServer()
@@ -41,10 +47,18 @@ var _ = Describe("App", func() {
 				ghttp.RespondWith(http.StatusNotFound, "nope"),
 			),
 		)
+		timestampFile = new(storagefakes.FakeFile)
+		fs.CreateStub = func(name string) (storage.File, error) {
+			if name == "timestamp" {
+				return timestampFile, nil
+			}
+			return nil, errors.New("Don't now how to make this file")
+		}
 	})
 
 	JustBeforeEach(func() {
-		retval = Run(ts.URL(), false, authenticator, downloader, fs, stdout, stderr)
+		retval = Run(ts.URL(), false, authenticator, downloader, fs, clock,
+			stdout, stderr)
 	})
 
 	Context("When the destination directory doesn't exist", func() {
@@ -127,6 +141,38 @@ var _ = Describe("App", func() {
 				Expect(stderr.String()).To(ContainSubstring(
 					"Error downloading original for 123: nope"))
 			})
+		})
+	})
+
+	Context("When everything succeeds", func() {
+		BeforeEach(func() {
+			photos := []flickrapi.PhotoListEntry{
+				flickrapi.PhotoListEntry{Data: map[string]interface{}{"id": "456"}},
+			}
+			downloader.DownloadPhotolistReturns(photos, nil)
+			clock.NowReturns(time.Unix(1257894000, 0))
+		})
+
+		It("writes a timestamp", func() {
+			Expect(fs.CreateCallCount()).To(Equal(1))
+			Expect(fs.CreateArgsForCall(0)).To(Equal("timestamp"))
+			Expect(timestampFile.WriteCallCount()).To(Equal(1))
+			Expect(timestampFile.WriteArgsForCall(0)).To(Equal([]byte("1257894000\n")))
+		})
+	})
+
+	Context("When something fails", func() {
+		BeforeEach(func() {
+			photos := []flickrapi.PhotoListEntry{
+				flickrapi.PhotoListEntry{Data: map[string]interface{}{"id": "456"}},
+			}
+			downloader.DownloadPhotolistReturns(photos, nil)
+			downloader.DownloadOriginalReturns(errors.New("nope"))
+		})
+
+		It("doesn't write a timestamp", func() {
+			Expect(clock.NowCallCount()).To(Equal(0))
+			Expect(fs.CreateCallCount()).To(Equal(0))
 		})
 	})
 })

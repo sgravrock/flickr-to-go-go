@@ -6,6 +6,7 @@ import (
 
 	"github.com/sgravrock/flickr-to-go-go/app"
 	"github.com/sgravrock/flickr-to-go-go/auth"
+	"github.com/sgravrock/flickr-to-go-go/clock"
 	"github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
@@ -17,8 +18,9 @@ func main() {
 	filestore := storage.NewFileStorage(dest)
 	authenticator := auth.NewAuthenticator(key, secret, filestore, nil, nil)
 	downloader := dl.NewDownloader(os.Stdout)
+	clock := clock.NewClock()
 	exitcode := app.Run("https://api.flickr.com", savecreds, authenticator,
-		downloader, filestore, os.Stdout, os.Stderr)
+		downloader, filestore, clock, os.Stdout, os.Stderr)
 	os.Exit(exitcode)
 }
 
