@@ -24,6 +24,21 @@ func setupTestLoginSuccess(ts *ghttp.Server) {
 	)
 }
 
+func setupRecentPhotosPages(ts *ghttp.Server, pages []string, timestamp uint32) {
+	for i := 0; i < len(pages); i++ {
+		params := fmt.Sprintf("method=flickr.photos.recentlyUpdated&min_date=%d&page=%d&per_page=2&format=json&nojsoncallback=1",
+			timestamp, i+1)
+		ts.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET",
+					"/services/rest/",
+					params),
+				ghttp.RespondWith(200, pages[i]),
+			),
+		)
+	}
+}
+
 func setupPhotolistPages(ts *ghttp.Server, pages []string) {
 	for i := 0; i < len(pages); i++ {
 		params := fmt.Sprintf("method=flickr.people.getPhotos&user_id=me&page=%d&per_page=2&extras=url_o&format=json&nojsoncallback=1", i+1)
@@ -137,6 +152,81 @@ var _ = Describe("flickrapi.Client", func() {
 			})
 
 			It("should return nil", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+	})
+
+	Describe("GetRecentPhotoIds", func() {
+		var result []string
+		var err error
+
+		JustBeforeEach(func() {
+			result, err = subject.GetRecentPhotoIds(12345, 2)
+		})
+
+		Context("with a successful single-page response", func() {
+			BeforeEach(func() {
+				pages := []string{`{ "photos": { "page": 1, "pages": 1, "perpage": 2, "total": 2, 
+    				"photo": [
+      					{ "id": "11111"},
+      					{ "id": "22222"}
+					] }, "stat": "ok" }`}
+				setupRecentPhotosPages(ts, pages, 12345)
+			})
+
+			It("should return the photo IDs", func() {
+				Expect(result).To(Equal([]string{"11111", "22222"}))
+			})
+
+			It("should not return an error", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("with an error", func() {
+			BeforeEach(func() {
+				ts.AppendHandlers(
+					ghttp.CombineHandlers(
+
+						ghttp.VerifyRequest("GET",
+							"/services/rest/",
+							"method=flickr.photos.recentlyUpdated&min_date=12345&page=1&per_page=2&format=json&nojsoncallback=1"),
+						ghttp.RespondWith(500, "oops"),
+					),
+				)
+			})
+
+			It("should return a nil list", func() {
+				Expect(result).To(BeNil())
+			})
+
+			It("should return an error", func() {
+				Expect(err).NotTo(BeNil())
+			})
+		})
+
+		Context("with all successful responses", func() {
+			BeforeEach(func() {
+				pages := []string{
+					`{ "photos": { "page": 1, "pages": 2, "perpage": 100, "total": 3, 
+    				"photo": [
+      					{ "id": "11111"},
+      					{ "id": "22222"}
+					] }, "stat": "ok" }`,
+					`{ "photos": { "page": 2, "pages": 2, "perpage": 100, "total": 3, 
+    				"photo": [
+      					{ "id": "33333"}
+					] }, "stat": "ok" }`,
+				}
+				setupRecentPhotosPages(ts, pages, 12345)
+			})
+
+			It("should return the photo IDs", func() {
+				Expect(result).To(Equal([]string{"11111", "22222", "33333"}))
+			})
+
+			It("should not return an error", func() {
 				Expect(err).To(BeNil())
 			})
 		})

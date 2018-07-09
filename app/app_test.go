@@ -101,12 +101,94 @@ var _ = Describe("App", func() {
 			downloader.DownloadPhotolistReturns(photos, nil)
 		})
 
-		It("downloads the photos' info", func() {
-			Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
-			_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
-			Expect(id).To(Equal("123"))
-			_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
-			Expect(id).To(Equal("456"))
+		Context("When the timestamp file doesn't exist", func() {
+			It("downloads all photos in the list", func() {
+				Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
+				_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+				Expect(id).To(Equal("123"))
+				_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
+				Expect(id).To(Equal("456"))
+
+				Expect(downloader.DownloadOriginalCallCount()).To(Equal(2))
+				_, _, p1 := downloader.DownloadOriginalArgsForCall(0)
+				Expect(p1.Id()).To(Equal("123"))
+				_, _, p2 := downloader.DownloadOriginalArgsForCall(1)
+				Expect(p2.Id()).To(Equal("456"))
+			})
+		})
+
+		Context("When the timestamp file exists", func() {
+			BeforeEach(func() {
+				err := ioutil.WriteFile(dir+"/timestamp", []byte("1257894000\n"), 0600)
+				Expect(err).To(BeNil())
+			})
+
+			It("gets the list of photos created or modified since the timestamp", func() {
+				Expect(downloader.GetRecentPhotoIdsCallCount()).To(Equal(1))
+				timestamp, _ := downloader.GetRecentPhotoIdsArgsForCall(0)
+				Expect(timestamp).To(Equal(uint32(1257894000)))
+			})
+
+			Context("When the GetRecentPhotoIds call fails", func() {
+				BeforeEach(func() {
+					downloader.GetRecentPhotoIdsReturns(nil, errors.New("nope"))
+				})
+
+				It("downloads all photos in the list", func() {
+					Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
+					_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+					Expect(id).To(Equal("123"))
+					_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
+					Expect(id).To(Equal("456"))
+
+					Expect(downloader.DownloadOriginalCallCount()).To(Equal(2))
+					_, _, p1 := downloader.DownloadOriginalArgsForCall(0)
+					Expect(p1.Id()).To(Equal("123"))
+					_, _, p2 := downloader.DownloadOriginalArgsForCall(1)
+					Expect(p2.Id()).To(Equal("456"))
+				})
+			})
+
+			Context("When the GetRecentPhotoIds call succeeds", func() {
+				BeforeEach(func() {
+					downloader.GetRecentPhotoIdsReturns([]string{"456"}, nil)
+				});
+
+				It("downloads all photo infos", func() {
+					Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
+					_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+					Expect(id).To(Equal("123"))
+					_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
+					Expect(id).To(Equal("456"))
+				})
+
+				Context("And all originals are present", func() {
+					BeforeEach(func() {
+						downloader.OriginalExistsReturns(true)
+					})
+
+					It("downloads originals of recently created or updated photos", func() {
+						Expect(downloader.DownloadOriginalCallCount()).To(Equal(1))
+						_, _, p2 := downloader.DownloadOriginalArgsForCall(0)
+						Expect(p2.Id()).To(Equal("456"))
+					})
+
+				})
+
+				Context("And some originals are missing", func() {
+					BeforeEach(func() {
+						downloader.OriginalExistsReturns(false)
+					})
+
+					It("downloads other originals that are missing", func() {
+						Expect(downloader.DownloadOriginalCallCount()).To(Equal(2))
+						_, _, p1 := downloader.DownloadOriginalArgsForCall(0)
+						Expect(p1.Id()).To(Equal("123"))
+						_, _, p2 := downloader.DownloadOriginalArgsForCall(1)
+						Expect(p2.Id()).To(Equal("456"))
+					})
+				})
+			})
 		})
 
 		Context("When a photo info download fails", func() {
@@ -119,14 +201,6 @@ var _ = Describe("App", func() {
 				Expect(stderr.String()).To(ContainSubstring(
 					"Error downloading info for 123: nope"))
 			})
-		})
-
-		It("downloads the original photos", func() {
-			Expect(downloader.DownloadOriginalCallCount()).To(Equal(2))
-			_, _, p1 := downloader.DownloadOriginalArgsForCall(0)
-			Expect(p1.Id()).To(Equal("123"))
-			_, _, p2 := downloader.DownloadOriginalArgsForCall(1)
-			Expect(p2.Id()).To(Equal("456"))
 		})
 
 		Context("When an original fails to download", func() {

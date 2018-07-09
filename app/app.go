@@ -27,12 +27,17 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
-
 	flickrClient := flickrapi.NewClient(httpClient, baseUrl)
+
 	photos, err := downloader.DownloadPhotolist(flickrClient, fileStore)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error downloading photo list: %s\n", err.Error())
 		return 1
+	}
+
+	updatedPhotoIds, err := getUpdatedPhotoIds(flickrClient, downloader, fileStore, stderr)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error downloading the list of updated photos: %s\n", err.Error())
 	}
 
 	fmt.Fprintf(stdout, "Got %d photos\n", len(photos))
@@ -51,11 +56,13 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 			return 1
 		}
 
-		err = downloader.DownloadOriginal(httpClient, fileStore, p)
-		if err != nil {
-			fmt.Fprintf(stderr, "Error downloading original for %s: %s\n",
-				id, err.Error())
-			return 1
+		if (shouldDownloadOriginal(downloader, fileStore, id, updatedPhotoIds)) {
+			err = downloader.DownloadOriginal(httpClient, fileStore, p)
+			if err != nil {
+				fmt.Fprintf(stderr, "Error downloading original for %s: %s\n",
+					id, err.Error())
+				return 1
+			}
 		}
 
 		err = writeTimestamp(clock, fileStore)
@@ -68,6 +75,26 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 	return 0
 }
 
+func shouldDownloadOriginal(downloader dl.Downloader,
+	fileStore storage.Storage,
+	photoId string,
+	updatedPhotoIds []string) bool {
+
+	return updatedPhotoIds == nil ||
+		containsString(updatedPhotoIds, photoId) ||
+		!downloader.OriginalExists(fileStore, photoId);
+}
+
+func containsString(haystack []string, needle string) bool {
+	for _, candidate := range haystack {
+		if candidate == needle {
+			return true
+		}
+	}
+
+	return false
+}
+
 func writeTimestamp(clock clock.Clock, fs storage.Storage) error {
 	f, err := fs.Create("timestamp")
 	if err != nil {
@@ -77,4 +104,30 @@ func writeTimestamp(clock clock.Clock, fs storage.Storage) error {
 	s := fmt.Sprint(clock.Now().Unix()) + "\n"
 	f.Write([]byte(s))
 	return nil
+}
+
+func readTimestamp(fs storage.Storage) (uint32, error) {
+	f, err := fs.Open("timestamp")
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	var result uint32
+	_, err = fmt.Fscan(f, &result)
+	return result, err
+}
+
+func getUpdatedPhotoIds(flickr flickrapi.Client, downloader dl.Downloader,
+	fileStore storage.Storage, stderr io.Writer) ([]string, error) {
+	timestamp, err := readTimestamp(fileStore)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error reading timestamp: %s\n", err.Error())
+		timestamp = 0
+	}
+
+	if timestamp == 0 {
+		return nil, nil
+	}
+
+	return downloader.GetRecentPhotoIds(timestamp, flickr)
 }

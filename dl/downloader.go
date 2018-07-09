@@ -12,10 +12,12 @@ import (
 )
 
 type Downloader interface {
+	GetRecentPhotoIds(timestamp uint32, flickr flickrapi.Client) ([]string, error)
 	DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
 	DownloadPhotoInfo(flickr flickrapi.Client, fs storage.Storage, id string) error
 	DownloadOriginal(httpClient *http.Client, fs storage.Storage,
 		photo flickrapi.PhotoListEntry) error
+	OriginalExists(fs storage.Storage, photoId string) bool
 }
 
 func NewDownloader(stdout io.Writer) Downloader {
@@ -24,6 +26,11 @@ func NewDownloader(stdout io.Writer) Downloader {
 
 type downloader struct {
 	stdout io.Writer
+}
+
+func (d *downloader) GetRecentPhotoIds(timestamp uint32,
+	flickr flickrapi.Client) ([]string, error) {
+	return flickr.GetRecentPhotoIds(timestamp, 500)
 }
 
 func (d *downloader) DownloadPhotolist(client flickrapi.Client,
@@ -77,11 +84,6 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 		return err
 	}
 
-	path := fmt.Sprintf("originals/%s.jpg", id)
-	if fs.Exists(path) {
-		return nil
-	}
-
 	fmt.Fprintf(dl.stdout, "Downloading original of photo %s\n", id)
 	url, err := photo.OriginalUrl()
 	if err != nil {
@@ -104,11 +106,19 @@ func (dl *downloader) DownloadOriginal(httpClient *http.Client,
 		return err
 	}
 
-	f, err := fs.Create(path)
+	f, err := fs.Create(dl.originalPath(fs, id))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	_, err = f.Write(contents)
 	return err
+}
+
+func (dl *downloader) OriginalExists(fs storage.Storage, photoId string) bool {
+	return fs.Exists(dl.originalPath(fs, photoId))
+}
+
+func (dl *downloader) originalPath(fs storage.Storage, photoId string) string {
+	return fmt.Sprintf("originals/%s.jpg", photoId);
 }

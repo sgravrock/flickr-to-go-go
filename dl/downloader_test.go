@@ -186,22 +186,6 @@ var _ = Describe("Downloader", func() {
 			err = subject.DownloadOriginal(new(http.Client), fs, photo)
 		})
 
-		Context("When the photo already exists", func() {
-			BeforeEach(func() {
-				fs.ExistsStub = func(name string) bool {
-					return name == "originals/12345.jpg"
-				}
-			})
-
-			It("does not download anything", func() {
-				Expect(fs.CreateCallCount()).To(Equal(0))
-			})
-
-			It("does not log anything", func() {
-				Expect(stdout.Len()).To(Equal(0))
-			})
-		})
-
 		Context("When the request returns a non-200 response", func() {
 			BeforeEach(func() {
 				ts.AppendHandlers(
