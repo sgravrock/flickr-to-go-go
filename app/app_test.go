@@ -75,8 +75,44 @@ var _ = Describe("App", func() {
 		Expect(authenticator.AuthenticateCallCount()).To(Equal(1))
 	})
 
-	It("downloads the photo list", func() {
-		Expect(downloader.DownloadPhotolistCallCount()).To(Equal(1))
+	Context("When the timestamp file doesn't exist", func() {
+		It("downloads the entire photo list", func() {
+			Expect(downloader.DownloadPhotolistCallCount()).To(Equal(1))
+			photoIds, _, _ := downloader.DownloadPhotolistArgsForCall(0)
+			Expect(photoIds).To(BeNil())
+		})
+	})
+
+	Context("When the timestamp file exists", func() {
+		BeforeEach(func() {
+			err := ioutil.WriteFile(dir+"/timestamp", []byte("1257894000\n"), 0600)
+			Expect(err).To(BeNil())
+		})
+
+		It("gets the list of photos created or modified since the timestamp", func() {
+			Expect(downloader.GetRecentPhotoIdsCallCount()).To(Equal(1))
+			timestamp, _ := downloader.GetRecentPhotoIdsArgsForCall(0)
+			Expect(timestamp).To(Equal(uint32(1257894000)))
+		})
+
+		Context("When the GetRecentPhotoIds call fails", func() {
+			BeforeEach(func() {
+				downloader.GetRecentPhotoIdsReturns(nil, errors.New("nope"))
+			})
+
+			It("downloads the entire photo list", func() {
+				Expect(downloader.DownloadPhotolistCallCount()).To(Equal(1))
+				photoIds, _, _ := downloader.DownloadPhotolistArgsForCall(0)
+				Expect(photoIds).To(BeNil())
+			})
+		})
+
+		Context("When the GetRecentPhotoIds call succeeds", func() {
+			// TODO verify that the list actually includes new photos
+			It("downloads the recently created or updated photos", func() {
+
+			})
+		})
 	})
 
 	Context("When the photo list download fails", func() {

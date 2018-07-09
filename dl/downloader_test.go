@@ -34,7 +34,7 @@ var _ = Describe("Downloader", func() {
 		var result []flickrapi.PhotoListEntry
 
 		JustBeforeEach(func() {
-			result, err = subject.DownloadPhotolist(flickrClient, fs)
+			result, err = subject.DownloadPhotolist(nil, flickrClient, fs)
 		})
 
 		It("should request the photo list", func() {

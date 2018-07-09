@@ -12,7 +12,8 @@ import (
 )
 
 type Downloader interface {
-	DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
+	GetRecentPhotoIds(timestamp uint32, flickr flickrapi.Client) ([]string, error)
+	DownloadPhotolist(updatedPhotoIds []string, flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
 	DownloadPhotoInfo(flickr flickrapi.Client, fs storage.Storage, id string) error
 	DownloadOriginal(httpClient *http.Client, fs storage.Storage,
 		photo flickrapi.PhotoListEntry) error
@@ -26,7 +27,12 @@ type downloader struct {
 	stdout io.Writer
 }
 
-func (d *downloader) DownloadPhotolist(client flickrapi.Client,
+func (d *downloader) GetRecentPhotoIds(timestamp uint32,
+	flickr flickrapi.Client) ([]string, error) {
+	return nil, errors.New("TODO")
+}
+
+func (d *downloader) DownloadPhotolist(updatedPhotoIds []string, client flickrapi.Client,
 	fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
 
 	fmt.Fprintln(d.stdout, "Downloading photo list")

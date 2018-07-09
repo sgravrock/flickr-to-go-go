@@ -11,11 +11,22 @@ import (
 )
 
 type FakeDownloader struct {
-	DownloadPhotolistStub        func(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
+	GetRecentPhotoIdsStub        func(timestamp uint32, flickr flickrapi.Client) ([]string, error)
+	getRecentPhotoIdsMutex       sync.RWMutex
+	getRecentPhotoIdsArgsForCall []struct {
+		timestamp uint32
+		flickr    flickrapi.Client
+	}
+	getRecentPhotoIdsReturns struct {
+		result1 []string
+		result2 error
+	}
+	DownloadPhotolistStub        func(photoIds []string, flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error)
 	downloadPhotolistMutex       sync.RWMutex
 	downloadPhotolistArgsForCall []struct {
-		flickr flickrapi.Client
-		fs     storage.Storage
+		photoIds []string
+		flickr   flickrapi.Client
+		fs       storage.Storage
 	}
 	downloadPhotolistReturns struct {
 		result1 []flickrapi.PhotoListEntry
@@ -43,15 +54,55 @@ type FakeDownloader struct {
 	}
 }
 
-func (fake *FakeDownloader) DownloadPhotolist(flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
+func (fake *FakeDownloader) GetRecentPhotoIds(timestamp uint32, flickr flickrapi.Client) ([]string, error) {
+	fake.getRecentPhotoIdsMutex.Lock()
+	fake.getRecentPhotoIdsArgsForCall = append(fake.getRecentPhotoIdsArgsForCall, struct {
+		timestamp uint32
+		flickr    flickrapi.Client
+	}{timestamp, flickr})
+	fake.getRecentPhotoIdsMutex.Unlock()
+	if fake.GetRecentPhotoIdsStub != nil {
+		return fake.GetRecentPhotoIdsStub(timestamp, flickr)
+	} else {
+		return fake.getRecentPhotoIdsReturns.result1, fake.getRecentPhotoIdsReturns.result2
+	}
+}
+
+func (fake *FakeDownloader) GetRecentPhotoIdsCallCount() int {
+	fake.getRecentPhotoIdsMutex.RLock()
+	defer fake.getRecentPhotoIdsMutex.RUnlock()
+	return len(fake.getRecentPhotoIdsArgsForCall)
+}
+
+func (fake *FakeDownloader) GetRecentPhotoIdsArgsForCall(i int) (uint32, flickrapi.Client) {
+	fake.getRecentPhotoIdsMutex.RLock()
+	defer fake.getRecentPhotoIdsMutex.RUnlock()
+	return fake.getRecentPhotoIdsArgsForCall[i].timestamp, fake.getRecentPhotoIdsArgsForCall[i].flickr
+}
+
+func (fake *FakeDownloader) GetRecentPhotoIdsReturns(result1 []string, result2 error) {
+	fake.GetRecentPhotoIdsStub = nil
+	fake.getRecentPhotoIdsReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDownloader) DownloadPhotolist(photoIds []string, flickr flickrapi.Client, fs storage.Storage) ([]flickrapi.PhotoListEntry, error) {
+	var photoIdsCopy []string
+	if photoIds != nil {
+		photoIdsCopy = make([]string, len(photoIds))
+		copy(photoIdsCopy, photoIds)
+	}
 	fake.downloadPhotolistMutex.Lock()
 	fake.downloadPhotolistArgsForCall = append(fake.downloadPhotolistArgsForCall, struct {
-		flickr flickrapi.Client
-		fs     storage.Storage
-	}{flickr, fs})
+		photoIds []string
+		flickr   flickrapi.Client
+		fs       storage.Storage
+	}{photoIdsCopy, flickr, fs})
 	fake.downloadPhotolistMutex.Unlock()
 	if fake.DownloadPhotolistStub != nil {
-		return fake.DownloadPhotolistStub(flickr, fs)
+		return fake.DownloadPhotolistStub(photoIds, flickr, fs)
 	} else {
 		return fake.downloadPhotolistReturns.result1, fake.downloadPhotolistReturns.result2
 	}
@@ -63,10 +114,10 @@ func (fake *FakeDownloader) DownloadPhotolistCallCount() int {
 	return len(fake.downloadPhotolistArgsForCall)
 }
 
-func (fake *FakeDownloader) DownloadPhotolistArgsForCall(i int) (flickrapi.Client, storage.Storage) {
+func (fake *FakeDownloader) DownloadPhotolistArgsForCall(i int) ([]string, flickrapi.Client, storage.Storage) {
 	fake.downloadPhotolistMutex.RLock()
 	defer fake.downloadPhotolistMutex.RUnlock()
-	return fake.downloadPhotolistArgsForCall[i].flickr, fake.downloadPhotolistArgsForCall[i].fs
+	return fake.downloadPhotolistArgsForCall[i].photoIds, fake.downloadPhotolistArgsForCall[i].flickr, fake.downloadPhotolistArgsForCall[i].fs
 }
 
 func (fake *FakeDownloader) DownloadPhotolistReturns(result1 []flickrapi.PhotoListEntry, result2 error) {

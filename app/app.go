@@ -27,9 +27,17 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
-
 	flickrClient := flickrapi.NewClient(httpClient, baseUrl)
-	photos, err := downloader.DownloadPhotolist(flickrClient, fileStore)
+
+	updatedIds, err := getUpdatedPhotoIds(flickrClient, downloader, fileStore, stderr)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error downloading the list of updated photos: %s\n", err.Error())
+		updatedIds = nil
+	}
+
+	updatedIds = nil // todo delete
+
+	photos, err := downloader.DownloadPhotolist(updatedIds, flickrClient, fileStore)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error downloading photo list: %s\n", err.Error())
 		return 1
@@ -77,4 +85,30 @@ func writeTimestamp(clock clock.Clock, fs storage.Storage) error {
 	s := fmt.Sprint(clock.Now().Unix()) + "\n"
 	f.Write([]byte(s))
 	return nil
+}
+
+func readTimestamp(fs storage.Storage) (uint32, error) {
+	f, err := fs.Open("timestamp")
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	var result uint32
+	_, err = fmt.Fscan(f, &result)
+	return result, err
+}
+
+func getUpdatedPhotoIds(flickr flickrapi.Client, downloader dl.Downloader,
+	fileStore storage.Storage, stderr io.Writer) ([]string, error) {
+	timestamp, err := readTimestamp(fileStore)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error reading timestamp: %s\n", err.Error())
+		timestamp = 0
+	}
+
+	if timestamp == 0 {
+		return nil, nil
+	}
+
+	return downloader.GetRecentPhotoIds(timestamp, flickr)
 }
