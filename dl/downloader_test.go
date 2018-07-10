@@ -29,6 +29,12 @@ var _ = Describe("Downloader", func() {
 		subject = NewDownloader(stdout)
 	})
 
+	Describe("GetRecentPhotoIds", func() {
+		It("should do a thing", func() {
+			Expect("").To(Equal("TODO"))
+		})
+	})
+
 	Describe("DownloadPhotolist", func() {
 		var err error
 		var result []flickrapi.PhotoListEntry
@@ -37,9 +43,19 @@ var _ = Describe("Downloader", func() {
 			result, err = subject.DownloadPhotolist(nil, flickrClient, fs)
 		})
 
-		It("should request the photo list", func() {
-			Expect(flickrClient.GetPhotosCallCount()).To(Equal(1))
+		Describe("When no updated photo ID array is passed", func() {
+			It("should request the photo list", func() {
+				Expect("").To(Equal("TODO check this against python"))
+				Expect(flickrClient.GetPhotosCallCount()).To(Equal(1))
+			})
 		})
+
+		Describe("When an updated photo ID array is passed", func() {
+			It("should do something appropriate", func() {
+				Expect("").To(Equal("TODO"))
+			})
+		})
+
 
 		Context("When the photo list fetch fails", func() {
 			BeforeEach(func() {

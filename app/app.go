@@ -35,8 +35,6 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		updatedIds = nil
 	}
 
-	updatedIds = nil // todo delete
-
 	photos, err := downloader.DownloadPhotolist(updatedIds, flickrClient, fileStore)
 	if err != nil {
 		fmt.Fprintf(stderr, "Error downloading photo list: %s\n", err.Error())

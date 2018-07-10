@@ -29,7 +29,7 @@ type downloader struct {
 
 func (d *downloader) GetRecentPhotoIds(timestamp uint32,
 	flickr flickrapi.Client) ([]string, error) {
-	return nil, errors.New("TODO")
+	return flickr.GetRecentPhotoIds(timestamp)
 }
 
 func (d *downloader) DownloadPhotolist(updatedPhotoIds []string, client flickrapi.Client,

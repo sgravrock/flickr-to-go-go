@@ -108,9 +108,14 @@ var _ = Describe("App", func() {
 		})
 
 		Context("When the GetRecentPhotoIds call succeeds", func() {
-			// TODO verify that the list actually includes new photos
-			It("downloads the recently created or updated photos", func() {
+			BeforeEach(func() {
+				downloader.GetRecentPhotoIdsReturns([]string{"1234567000"}, nil)
+			});
 
+			It("downloads the recently created or updated photos", func() {
+				Expect(downloader.DownloadPhotolistCallCount()).To(Equal(1))
+				photoIds, _, _ := downloader.DownloadPhotolistArgsForCall(0)
+				Expect(photoIds).To(Equal([]string{"1234567000"}))
 			})
 		})
 	})

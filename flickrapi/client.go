@@ -15,6 +15,7 @@ type Client interface {
 
 	// Higher-level interfaces for specific requests
 	GetUsername() (string, error)
+	GetRecentPhotoIds(timestamp uint32, pageSize int) ([]string, error)
 	GetPhotos(pageSize int) ([]PhotoListEntry, error)
 	GetPhotoInfo(photoId string) (map[string]interface{}, error)
 }
@@ -123,6 +124,37 @@ func (c flickrClient) GetUsername() (string, error) {
 		return "", err
 	}
 	return requireString(payload, []string{"user", "username", "_content"})
+}
+
+func (c flickrClient) GetRecentPhotoIds(timestamp uint32, pageSize int) ([]string, error) {
+	result := []string{}
+	params := map[string]string{
+		"min_date": strconv.FormatUint(uint64(timestamp), 10),
+		"per_page": strconv.Itoa(pageSize),
+	}
+	err := c.getPaged("flickr.photos.recentlyUpdated", params, "photos",
+		func(pagePayload map[string]interface{}) error {
+			photos, err := requireList(pagePayload, []string{"photos", "photo"})
+			if err != nil {
+				return err
+			}
+
+			for _, p := range photos {
+				photo, ok := p.(map[string]interface{})
+				if !ok {
+					return errors.New("Unexpected API call result format (non-object in photos.photo)")
+				}
+
+				id, ok := p["id"]
+
+				result = append(result, p
+			}
+		})
+
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (c flickrClient) GetPhotos(pageSize int) ([]PhotoListEntry, error) {
