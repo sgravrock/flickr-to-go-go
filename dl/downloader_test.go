@@ -105,23 +105,6 @@ var _ = Describe("Downloader", func() {
 			err = subject.DownloadPhotoInfo(flickrClient, fs, "789")
 		})
 
-		Context("When the photo info already exists", func() {
-			BeforeEach(func() {
-				fs.ExistsStub = func(name string) bool {
-					return name == "photo-info/789.json"
-				}
-			})
-
-			It("does not download anything", func() {
-				Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(0))
-				Expect(fs.WriteJsonCallCount()).To(Equal(0))
-			})
-
-			It("does not log anything", func() {
-				Expect(stdout.Len()).To(Equal(0))
-			})
-		})
-
 		It("requests the photo info", func() {
 			Expect(flickrClient.GetPhotoInfoCallCount()).To(Equal(1))
 			Expect(flickrClient.GetPhotoInfoArgsForCall(0)).To(Equal("789"))

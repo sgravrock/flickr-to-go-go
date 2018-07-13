@@ -49,11 +49,13 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 			return 1
 		}
 
-		err = downloader.DownloadPhotoInfo(flickrClient, fileStore, id)
-		if err != nil {
-			fmt.Fprintf(stderr, "Error downloading info for %s: %s\n",
-				id, err.Error())
-			return 1
+		if (shouldDownloadInfo(downloader, fileStore, id, updatedPhotoIds)) {
+			err = downloader.DownloadPhotoInfo(flickrClient, fileStore, id)
+			if err != nil {
+				fmt.Fprintf(stderr, "Error downloading info for %s: %s\n",
+					id, err.Error())
+				return 1
+			}
 		}
 
 		if (shouldDownloadOriginal(downloader, fileStore, id, updatedPhotoIds)) {
@@ -83,6 +85,16 @@ func shouldDownloadOriginal(downloader dl.Downloader,
 	return updatedPhotoIds == nil ||
 		containsString(updatedPhotoIds, photoId) ||
 		!downloader.OriginalExists(fileStore, photoId);
+}
+
+func shouldDownloadInfo(downloader dl.Downloader,
+	fileStore storage.Storage,
+	photoId string,
+	updatedPhotoIds []string) bool {
+
+	return updatedPhotoIds == nil ||
+		containsString(updatedPhotoIds, photoId) ||
+		!downloader.PhotoInfoExists(fileStore, photoId);
 }
 
 func containsString(haystack []string, needle string) bool {

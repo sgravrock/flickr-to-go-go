@@ -18,6 +18,7 @@ type Downloader interface {
 	DownloadOriginal(httpClient *http.Client, fs storage.Storage,
 		photo flickrapi.PhotoListEntry) error
 	OriginalExists(fs storage.Storage, photoId string) bool
+	PhotoInfoExists(fs storage.Storage, photoId string) bool
 }
 
 func NewDownloader(stdout io.Writer) Downloader {
@@ -63,18 +64,13 @@ func savePhotolist(fs storage.Storage, photos []flickrapi.PhotoListEntry) error 
 func (dl *downloader) DownloadPhotoInfo(flickr flickrapi.Client,
 	fs storage.Storage, id string) error {
 
-	path := fmt.Sprintf("photo-info/%s.json", id)
-	if fs.Exists(path) {
-		return nil
-	}
-
 	fmt.Fprintf(dl.stdout, "Downloading info for photo %s\n", id)
 	info, err := flickr.GetPhotoInfo(id)
 	if err != nil {
 		return err
 	}
 
-	return fs.WriteJson(path, info)
+	return fs.WriteJson(dl.photoInfoPath(fs, id), info)
 }
 
 func (dl *downloader) DownloadOriginal(httpClient *http.Client,
@@ -121,4 +117,12 @@ func (dl *downloader) OriginalExists(fs storage.Storage, photoId string) bool {
 
 func (dl *downloader) originalPath(fs storage.Storage, photoId string) string {
 	return fmt.Sprintf("originals/%s.jpg", photoId);
+}
+
+func (dl *downloader) PhotoInfoExists(fs storage.Storage, photoId string) bool {
+	return fs.Exists(dl.photoInfoPath(fs, photoId))
+}
+
+func (dl *downloader) photoInfoPath(fs storage.Storage, photoId string) string {
+	return fmt.Sprintf("photo-info/%s.json", photoId);
 }

@@ -77,6 +77,18 @@ type FakeDownloader struct {
 	originalExistsReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	PhotoInfoExistsStub        func(fs storage.Storage, photoId string) bool
+	photoInfoExistsMutex       sync.RWMutex
+	photoInfoExistsArgsForCall []struct {
+		fs      storage.Storage
+		photoId string
+	}
+	photoInfoExistsReturns struct {
+		result1 bool
+	}
+	photoInfoExistsReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -334,6 +346,55 @@ func (fake *FakeDownloader) OriginalExistsReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeDownloader) PhotoInfoExists(fs storage.Storage, photoId string) bool {
+	fake.photoInfoExistsMutex.Lock()
+	ret, specificReturn := fake.photoInfoExistsReturnsOnCall[len(fake.photoInfoExistsArgsForCall)]
+	fake.photoInfoExistsArgsForCall = append(fake.photoInfoExistsArgsForCall, struct {
+		fs      storage.Storage
+		photoId string
+	}{fs, photoId})
+	fake.recordInvocation("PhotoInfoExists", []interface{}{fs, photoId})
+	fake.photoInfoExistsMutex.Unlock()
+	if fake.PhotoInfoExistsStub != nil {
+		return fake.PhotoInfoExistsStub(fs, photoId)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.photoInfoExistsReturns.result1
+}
+
+func (fake *FakeDownloader) PhotoInfoExistsCallCount() int {
+	fake.photoInfoExistsMutex.RLock()
+	defer fake.photoInfoExistsMutex.RUnlock()
+	return len(fake.photoInfoExistsArgsForCall)
+}
+
+func (fake *FakeDownloader) PhotoInfoExistsArgsForCall(i int) (storage.Storage, string) {
+	fake.photoInfoExistsMutex.RLock()
+	defer fake.photoInfoExistsMutex.RUnlock()
+	return fake.photoInfoExistsArgsForCall[i].fs, fake.photoInfoExistsArgsForCall[i].photoId
+}
+
+func (fake *FakeDownloader) PhotoInfoExistsReturns(result1 bool) {
+	fake.PhotoInfoExistsStub = nil
+	fake.photoInfoExistsReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeDownloader) PhotoInfoExistsReturnsOnCall(i int, result1 bool) {
+	fake.PhotoInfoExistsStub = nil
+	if fake.photoInfoExistsReturnsOnCall == nil {
+		fake.photoInfoExistsReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.photoInfoExistsReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
 func (fake *FakeDownloader) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -347,6 +408,8 @@ func (fake *FakeDownloader) Invocations() map[string][][]interface{} {
 	defer fake.downloadOriginalMutex.RUnlock()
 	fake.originalExistsMutex.RLock()
 	defer fake.originalExistsMutex.RUnlock()
+	fake.photoInfoExistsMutex.RLock()
+	defer fake.photoInfoExistsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

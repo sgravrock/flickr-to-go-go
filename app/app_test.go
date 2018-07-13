@@ -162,6 +162,32 @@ var _ = Describe("App", func() {
 					Expect(id).To(Equal("456"))
 				})
 
+				Context("And all photo infos are present", func() {
+					BeforeEach(func() {
+						downloader.PhotoInfoExistsReturns(true)
+					})
+
+					It("downloads info for recently created or updated photos", func() {
+						Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(1))
+						_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+						Expect(id).To(Equal("456"))
+					})
+				})
+
+				Context("And some photo infos are missing", func() {
+					BeforeEach(func() {
+						downloader.PhotoInfoExistsReturns(false)
+					})
+
+					It("downloads missing infos", func() {
+						Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
+						_, _, id := downloader.DownloadPhotoInfoArgsForCall(0)
+						Expect(id).To(Equal("123"))
+						_, _, id = downloader.DownloadPhotoInfoArgsForCall(1)
+						Expect(id).To(Equal("456"))
+					})
+				})
+
 				Context("And all originals are present", func() {
 					BeforeEach(func() {
 						downloader.OriginalExistsReturns(true)
@@ -172,7 +198,6 @@ var _ = Describe("App", func() {
 						_, _, p2 := downloader.DownloadOriginalArgsForCall(0)
 						Expect(p2.Id()).To(Equal("456"))
 					})
-
 				})
 
 				Context("And some originals are missing", func() {
