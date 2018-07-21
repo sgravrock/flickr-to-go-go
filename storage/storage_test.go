@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"path"
 )
 
 var _ = Describe("Storage", func() {
@@ -45,6 +46,59 @@ var _ = Describe("Storage", func() {
 					Expect(err).NotTo(BeNil())
 				})
 			})
+		})
+	})
+
+	Describe("ListFiles", func() {
+		It("returns the list of files in the specified directory", func() {
+			err := os.Mkdir(path.Join(dir, "subdir"), 0777)
+			Expect(err).To(BeNil())
+			f, err := os.Create(path.Join(dir, "subdir/file1"))
+			Expect(err).To(BeNil())
+			f.Close()
+			f, err = os.Create(path.Join(dir, "subdir/file2"))
+			Expect(err).To(BeNil())
+			f.Close()
+
+			files, err := subject.ListFiles("subdir")
+			Expect(err).To(BeNil())
+			Expect(files).To(Equal([]string {"file1", "file2"}))
+		})
+
+		It("excludes directories", func() {
+			err := os.MkdirAll(path.Join(dir, "subdir/subsub"), 0777)
+			Expect(err).To(BeNil())
+			files, err := subject.ListFiles("subdir")
+			Expect(err).To(BeNil())
+			Expect(len(files)).To(Equal(0))
+		})
+	})
+
+	Describe("Move", func() {
+		It("creates leading directories", func() {
+			f, err := subject.Create("file")
+			Expect(err).To(BeNil())
+			f.Close()
+
+			err = subject.Move("file", "subdir/file")
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(path.Join(dir, "subdir/file"))
+			Expect(err).To(BeNil())
+		})
+
+		It("moves the file", func() {
+			f, err := subject.Create("file")
+			Expect(err).To(BeNil())
+			f.Close()
+
+			err = subject.Move("file", "file2")
+			Expect(err).To(BeNil())
+
+			_, err = os.Stat(path.Join(dir, "file"))
+			Expect(err).NotTo(BeNil())
+			_, err = os.Stat(path.Join(dir, "file2"))
+			Expect(err).To(BeNil())
 		})
 	})
 })

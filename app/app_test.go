@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"time"
 
 	. "github.com/sgravrock/flickr-to-go-go/app"
@@ -14,6 +15,8 @@ import (
 	"github.com/sgravrock/flickr-to-go-go/dl/dlfakes"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
+
+	"io"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -152,7 +155,7 @@ var _ = Describe("App", func() {
 			Context("When the GetRecentPhotoIds call succeeds", func() {
 				BeforeEach(func() {
 					downloader.GetRecentPhotoIdsReturns([]string{"456"}, nil)
-				});
+				})
 
 				It("downloads all photo infos", func() {
 					Expect(downloader.DownloadPhotoInfoCallCount()).To(Equal(2))
@@ -237,6 +240,98 @@ var _ = Describe("App", func() {
 				Expect(retval).NotTo(Equal(0))
 				Expect(stderr.String()).To(ContainSubstring(
 					"Error downloading original for 123: nope"))
+			})
+		})
+
+		Context("When a previously downloaded photo has been deleted", func() {
+			var (
+				oldInfoPath string
+				oldOrigPath string
+			)
+
+			BeforeEach(func() {
+				infoDir := path.Join(dir, "photo-info")
+				err := os.MkdirAll(infoDir, 0777)
+				Expect(err).To(BeNil())
+				oldInfoPath = path.Join(infoDir, "678.json")
+				infoFile, err := os.Create(oldInfoPath)
+				Expect(err).To(BeNil())
+				defer infoFile.Close()
+				io.WriteString(infoFile, "info")
+
+				_, err = os.Stat(oldInfoPath)
+				Expect(err).To(BeNil())
+
+				origDir := path.Join(dir, "originals")
+				err = os.MkdirAll(origDir, 0777)
+				Expect(err).To(BeNil())
+				oldOrigPath = path.Join(origDir, "678.jpg")
+				origFile, err := os.Create(oldOrigPath)
+				Expect(err).To(BeNil())
+				defer origFile.Close()
+				io.WriteString(origFile, "orig")
+			})
+
+			It("moves the info file to the attic", func() {
+				_, err := os.Stat(oldInfoPath)
+				Expect(err).NotTo(BeNil())
+
+				newInfoPath := path.Join(dir, "attic/photo-info/678.json")
+				b, err := ioutil.ReadFile(newInfoPath)
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("info"))
+			})
+
+			It("moves the original to the attic", func() {
+				_, err := os.Stat(oldOrigPath)
+				Expect(err).NotTo(BeNil())
+
+				newOrigPath := path.Join(dir, "attic/originals/678.jpg")
+				b, err := ioutil.ReadFile(newOrigPath)
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("orig"))
+			})
+		})
+
+		Context("When a previously downloaded photo has not been updated", func() {
+			var (
+				infoPath string
+				origPath string
+			)
+
+			BeforeEach(func() {
+				infoDir := path.Join(dir, "photo-info")
+				err := os.MkdirAll(infoDir, 0777)
+				Expect(err).To(BeNil())
+				infoPath = path.Join(infoDir, "123.json")
+				infoFile, err := os.Create(infoPath)
+				Expect(err).To(BeNil())
+				defer infoFile.Close()
+				io.WriteString(infoFile, "info")
+
+				_, err = os.Stat(infoPath)
+				Expect(err).To(BeNil())
+
+				origDir := path.Join(dir, "originals")
+				err = os.MkdirAll(origDir, 0777)
+				Expect(err).To(BeNil())
+				origPath = path.Join(origDir, "123.jpg")
+				origFile, err := os.Create(origPath)
+				Expect(err).To(BeNil())
+				defer origFile.Close()
+				io.WriteString(origFile, "orig")
+			})
+
+			It("does not move the info file to the attic", func() {
+				b, err := ioutil.ReadFile(infoPath)
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("info"))
+			})
+
+			It("does not move the original to the attic", func() {
+				b, err := ioutil.ReadFile(origPath)
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("orig"))
 			})
 		})
 	})
