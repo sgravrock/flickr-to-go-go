@@ -285,6 +285,8 @@ var _ = Describe("App", func() {
 				b, err := ioutil.ReadFile(newInfoPath)
 				Expect(err).To(BeNil())
 				Expect(string(b)).To(Equal("info"))
+				Expect(stdout.String()).To(ContainSubstring(
+					"Moving info of deleted photo 678 to attic"))
 			})
 
 			It("moves the original to the attic", func() {
@@ -295,6 +297,9 @@ var _ = Describe("App", func() {
 				b, err := ioutil.ReadFile(newOrigPath)
 				Expect(err).To(BeNil())
 				Expect(string(b)).To(Equal("orig"))
+				Expect(stdout.String()).To(ContainSubstring(
+					"Moving original of deleted photo 678 to attic"))
+
 			})
 		})
 

@@ -179,7 +179,7 @@ func (ftg *application) moveDeletedFiles(
 		photoId := stripExtension.ReplaceAllLiteralString(filename, "")
 
 		if !ftg.containsPhoto(photos, photoId) {
-			fmt.Printf("Moving %s of deleted photo %s to attic\n",
+			fmt.Fprintf(ftg.stdout, "Moving %s of deleted photo %s to attic\n",
 				description, photoId)
 			oldPath := path.Join(srcDir, filename)
 			newPath := path.Join("attic", oldPath)
