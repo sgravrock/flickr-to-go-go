@@ -9,6 +9,8 @@ import (
 
 	"errors"
 
+	"os"
+
 	"github.com/sgravrock/flickr-to-go-go/auth"
 	"github.com/sgravrock/flickr-to-go-go/clock"
 	"github.com/sgravrock/flickr-to-go-go/dl"
@@ -146,6 +148,12 @@ func moveDeletedFiles(fileStore storage.Storage,
 
 	srcFiles, err := fileStore.ListFiles(srcDir)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// First run. The directory doesn't exist yet, so there can be
+			// nothing to move from it.
+			return nil
+		}
+
 		msg := fmt.Sprintf("Error reading dir %s: %s\n",
 			srcDir, err.Error())
 		return errors.New(msg)

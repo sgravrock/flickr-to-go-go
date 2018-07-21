@@ -74,6 +74,11 @@ var _ = Describe("App", func() {
 		})
 	})
 
+	It("runs to completion even if the destination is empty", func() {
+		Expect(stderr.String()).To(Equal(""))
+		Expect(retval).To(Equal(0))
+	})
+
 	It("authenticates the user", func() {
 		Expect(authenticator.AuthenticateCallCount()).To(Equal(1))
 	})
