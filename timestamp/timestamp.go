@@ -5,6 +5,8 @@ import (
 
 	"io"
 
+	"os"
+
 	"github.com/sgravrock/flickr-to-go-go/clock"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 )
@@ -12,7 +14,10 @@ import (
 func Read(fs storage.Storage, stderr io.Writer) uint32 {
 	result, err := read2(fs, stderr)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error reading timestamp: %s\n", err.Error())
+		// The timestamp file won't exist on first run. Be quiet about that.
+		if !os.IsNotExist(err) {
+			fmt.Fprintf(stderr, "Error reading timestamp: %s\n", err.Error())
+		}
 		return 0
 	}
 

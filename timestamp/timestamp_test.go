@@ -12,6 +12,8 @@ import (
 
 	"time"
 
+	"os"
+
 	"github.com/sgravrock/flickr-to-go-go/clock/clockfakes"
 	"github.com/sgravrock/flickr-to-go-go/storage"
 	"github.com/sgravrock/flickr-to-go-go/timestamp"
@@ -57,8 +59,24 @@ var _ = Describe("Timestamp", func() {
 				Expect(result).To(Equal(uint32(0)))
 			})
 
+			It("does not log an error", func() {
+				Expect(stderr.String()).To(Equal(""))
+			})
+		})
+
+		Describe("When another error occurs", func() {
+			BeforeEach(func() {
+				err := os.Mkdir(path.Join(dir, "timestamp"), 0700)
+				Expect(err).To(BeNil())
+			})
+
+			It("returns 0", func() {
+				Expect(result).To(Equal(uint32(0)))
+			})
+
 			It("logs an error", func() {
-				Expect(stderr.String()).To(HavePrefix("Error reading timestamp: open"))
+				Expect(stderr.String()).To(HavePrefix("Error reading timestamp:"))
+				Expect(stderr.String()).To(ContainSubstring("is a directory"))
 			})
 		})
 	})
