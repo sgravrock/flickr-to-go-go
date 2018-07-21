@@ -3,12 +3,14 @@ package app
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
 	"github.com/sgravrock/flickr-to-go-go/clock"
 	"github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
+	"path"
 )
 
 func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
@@ -71,6 +73,22 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		if err != nil {
 			fmt.Fprintf(stderr, "Error saving timestamp: %s\n", err.Error())
 			return 1
+		}
+	}
+
+	files, err := fileStore.ListFiles("photo-info")
+	if err != nil {
+		fmt.Fprintf(stderr, "Error reading info dir: %s\n", err.Error())
+		return 1
+	}
+
+	for _, filename := range files {
+		photoId := strings.Replace(filename, ".json", "", 1)
+
+		if !containsString(updatedPhotoIds, photoId) {
+			oldPath := path.Join("photo-info", filename)
+			newPath := path.Join("attic", oldPath)
+			fileStore.Move(oldPath, newPath)
 		}
 	}
 

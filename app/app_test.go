@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"path"
+
 
 	. "github.com/sgravrock/flickr-to-go-go/app"
 	"github.com/sgravrock/flickr-to-go-go/auth/authfakes"
@@ -18,6 +20,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"io"
+	"fmt"
 )
 
 var _ = Describe("App", func() {
@@ -237,6 +241,55 @@ var _ = Describe("App", func() {
 				Expect(retval).NotTo(Equal(0))
 				Expect(stderr.String()).To(ContainSubstring(
 					"Error downloading original for 123: nope"))
+			})
+		})
+
+		Context("When a previously backed up photo has been deleted", func() {
+			var (
+				oldInfoPath string
+				oldOrigPath string
+			)
+
+			BeforeEach(func() {
+				infoDir := path.Join(dir, "photo-info")
+				err := os.MkdirAll(infoDir, 0777)
+				Expect(err).To(BeNil())
+				oldInfoPath = path.Join(infoDir, "678.json")
+				infoFile, err := os.Create(oldInfoPath)
+				Expect(err).To(BeNil())
+				defer infoFile.Close()
+				io.WriteString(infoFile, "info")
+				fmt.Printf("Writing to %s\n", oldInfoPath)
+
+				_, err = os.Stat(oldInfoPath)
+				Expect(err).To(BeNil())
+
+				origDir := path.Join(dir, "originals")
+				err = os.MkdirAll(origDir, 0777)
+				Expect(err).To(BeNil())
+				oldOrigPath = path.Join(origDir, "678.jpg")
+				origFile, err := fs.Create(oldOrigPath)
+				Expect(err).To(BeNil())
+				defer origFile.Close()
+				io.WriteString(origFile, "orig")
+			})
+
+			FIt("moves the info file to the attic", func() {
+				_, err := os.Stat(oldInfoPath)
+				Expect(err).To(BeNil())
+
+				newInfoPath := fmt.Sprintf("%s/attic/photo-info/678.json", dir)
+				b, err := ioutil.ReadFile(newInfoPath)
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("info"))
+			})
+
+			It("moves the original to the attic", func() {
+				Expect(fs.Exists("originals/678.jpg")).To(BeFalse())
+				Expect(fs.Exists("attic/originals/678.jpg")).To(BeTrue())
+				b, err := ioutil.ReadFile("storage_test/attic/originals/678.jpg")
+				Expect(err).To(BeNil())
+				Expect(string(b)).To(Equal("orig"))
 			})
 		})
 	})
