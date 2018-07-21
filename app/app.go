@@ -14,6 +14,7 @@ import (
 	"github.com/sgravrock/flickr-to-go-go/dl"
 	"github.com/sgravrock/flickr-to-go-go/flickrapi"
 	"github.com/sgravrock/flickr-to-go-go/storage"
+	"github.com/sgravrock/flickr-to-go-go/timestamp"
 )
 
 func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
@@ -72,7 +73,7 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 			}
 		}
 
-		err = writeTimestamp(clock, fileStore)
+		err = timestamp.Write(clock, fileStore)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error saving timestamp: %s\n", err.Error())
 			return 1
@@ -126,41 +127,15 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func writeTimestamp(clock clock.Clock, fs storage.Storage) error {
-	f, err := fs.Create("timestamp")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	s := fmt.Sprint(clock.Now().Unix()) + "\n"
-	f.Write([]byte(s))
-	return nil
-}
-
-func readTimestamp(fs storage.Storage) (uint32, error) {
-	f, err := fs.Open("timestamp")
-	if err != nil {
-		return 0, err
-	}
-	defer f.Close()
-	var result uint32
-	_, err = fmt.Fscan(f, &result)
-	return result, err
-}
-
 func getUpdatedPhotoIds(flickr flickrapi.Client, downloader dl.Downloader,
 	fileStore storage.Storage, stderr io.Writer) ([]string, error) {
-	timestamp, err := readTimestamp(fileStore)
-	if err != nil {
-		fmt.Fprintf(stderr, "Error reading timestamp: %s\n", err.Error())
-		timestamp = 0
-	}
 
-	if timestamp == 0 {
+	lastRun := timestamp.Read(fileStore, stderr)
+	if lastRun == 0 {
 		return nil, nil
 	}
 
-	return downloader.GetRecentPhotoIds(timestamp, flickr)
+	return downloader.GetRecentPhotoIds(lastRun, flickr)
 }
 
 func moveDeletedFiles(fileStore storage.Storage,
