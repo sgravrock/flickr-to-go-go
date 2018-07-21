@@ -3,9 +3,11 @@ package app
 import (
 	"fmt"
 	"io"
-	"strings"
-
 	"path"
+
+	"regexp"
+
+	"errors"
 
 	"github.com/sgravrock/flickr-to-go-go/auth"
 	"github.com/sgravrock/flickr-to-go-go/clock"
@@ -77,53 +79,18 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		}
 	}
 
-	infoFiles, err := fileStore.ListFiles("photo-info")
+	err = moveDeletedFiles(fileStore, stderr, photos, "photo-info",
+		"info")
 	if err != nil {
-		fmt.Fprintf(stderr, "Error reading info dir: %s\n", err.Error())
+		fmt.Fprintln(stderr, err.Error())
 		return 1
 	}
 
-	for _, filename := range infoFiles {
-		photoId := strings.Replace(filename, ".json", "", 1)
-
-		if !containsPhoto(photos, photoId, stderr) {
-			fmt.Printf("Moving info of deleted photo %s to attic\n",
-				photoId)
-			oldPath := path.Join("photo-info", filename)
-			newPath := path.Join("attic", oldPath)
-			err = fileStore.Move(oldPath, newPath)
-
-			if err != nil {
-				fmt.Fprintf(stderr, "Error moving deleted photo %s: %s\n",
-					photoId, err.Error())
-				return 1
-			}
-		}
-	}
-
-	origFiles, err := fileStore.ListFiles("originals")
+	err = moveDeletedFiles(fileStore, stderr, photos, "originals",
+		"original")
 	if err != nil {
-		fmt.Fprintf(stderr, "Error reading originals dir: %s\n",
-			err.Error())
+		fmt.Fprintln(stderr, err.Error())
 		return 1
-	}
-
-	for _, filename := range origFiles {
-		photoId := strings.Replace(filename, ".jpg", "", 1)
-
-		if !containsPhoto(photos, photoId, stderr) {
-			fmt.Printf("Moving original of deleted photo %s to attic\n",
-				photoId)
-			oldPath := path.Join("originals", filename)
-			newPath := path.Join("attic", oldPath)
-			err = fileStore.Move(oldPath, newPath)
-
-			if err != nil {
-				fmt.Fprintf(stderr, "Error moving deleted photo %s: %s\n",
-					photoId, err.Error())
-				return 1
-			}
-		}
 	}
 
 	return 0
@@ -152,24 +119,6 @@ func shouldDownloadInfo(downloader dl.Downloader,
 func containsString(haystack []string, needle string) bool {
 	for _, candidate := range haystack {
 		if candidate == needle {
-			return true
-		}
-	}
-
-	return false
-}
-
-func containsPhoto(photos []flickrapi.PhotoListEntry,
-	idToFind string,
-	stderr io.Writer) bool {
-
-	for _, candidate := range photos {
-		id, err := candidate.Id()
-
-		if err != nil {
-			// Should've already been caught elsewhere. Warn and continue.
-			fmt.Fprintln(stderr, "Photo has no id")
-		} else if id == idToFind {
 			return true
 		}
 	}
@@ -212,4 +161,59 @@ func getUpdatedPhotoIds(flickr flickrapi.Client, downloader dl.Downloader,
 	}
 
 	return downloader.GetRecentPhotoIds(timestamp, flickr)
+}
+
+func moveDeletedFiles(fileStore storage.Storage,
+	stderr io.Writer,
+	photos []flickrapi.PhotoListEntry,
+	srcDir string,
+	description string) error {
+
+	srcFiles, err := fileStore.ListFiles(srcDir)
+	if err != nil {
+		msg := fmt.Sprintf("Error reading dir %s: %s\n",
+			srcDir, err.Error())
+		return errors.New(msg)
+	}
+
+	stripExtension := regexp.MustCompile("\\.[^\\.]+$")
+
+	for _, filename := range srcFiles {
+		photoId := stripExtension.ReplaceAllLiteralString(filename, "")
+
+		if !containsPhoto(photos, photoId, stderr) {
+			fmt.Printf("Moving %s of deleted photo %s to attic\n",
+				description, photoId)
+			oldPath := path.Join(srcDir, filename)
+			newPath := path.Join("attic", oldPath)
+			err = fileStore.Move(oldPath, newPath)
+
+			if err != nil {
+				msg := fmt.Sprintf(
+					"Error moving %s of deleted photo %s: %s\n",
+					description, photoId, err.Error())
+				return errors.New(msg)
+			}
+		}
+	}
+
+	return nil
+}
+
+func containsPhoto(photos []flickrapi.PhotoListEntry,
+	idToFind string,
+	stderr io.Writer) bool {
+
+	for _, candidate := range photos {
+		id, err := candidate.Id()
+
+		if err != nil {
+			// Should've already been caught elsewhere. Warn and continue.
+			fmt.Fprintln(stderr, "Photo has no id")
+		} else if id == idToFind {
+			return true
+		}
+	}
+
+	return false
 }
