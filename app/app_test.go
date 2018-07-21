@@ -350,6 +350,11 @@ var _ = Describe("App", func() {
 			clock.NowReturns(time.Unix(1257894000, 0))
 		})
 
+		It("exits successfully", func() {
+			Expect(stderr.String()).To(Equal(""))
+			Expect(retval).To(Equal(0))
+		})
+
 		It("writes a timestamp", func() {
 			contents, err := ioutil.ReadFile(dir + "/timestamp")
 			Expect(err).To(BeNil())

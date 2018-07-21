@@ -74,12 +74,6 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 				return 1
 			}
 		}
-
-		err = timestamp.Write(clock, fileStore)
-		if err != nil {
-			fmt.Fprintf(stderr, "Error saving timestamp: %s\n", err.Error())
-			return 1
-		}
 	}
 
 	err = moveDeletedFiles(fileStore, stderr, photos, "photo-info",
@@ -93,6 +87,12 @@ func Run(baseUrl string, savecreds bool, authenticator auth.Authenticator,
 		"original")
 	if err != nil {
 		fmt.Fprintln(stderr, err.Error())
+		return 1
+	}
+
+	err = timestamp.Write(clock, fileStore)
+	if err != nil {
+		fmt.Fprintf(stderr, "Error saving timestamp: %s\n", err.Error())
 		return 1
 	}
 
